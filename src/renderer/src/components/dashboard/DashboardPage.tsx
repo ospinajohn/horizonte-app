@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileDown } from 'lucide-react'
-import { addDays, format } from 'date-fns'
+import { addDays, format, startOfMonth, endOfMonth, differenceInCalendarDays, setDate, isAfter } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
 import { LiquidityCard } from './LiquidityCard'
@@ -9,7 +9,7 @@ import { TelemetryChart } from './TelemetryChart'
 import { HealthGauge } from './HealthGauge'
 import { DecisionLog } from './DecisionLog'
 import { GoalsCard } from './GoalsCard'
-import { SmartDecisionCard } from './SmartDecisionCard'
+import { InsightsRow } from './InsightsRow'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboard } from '@/hooks/useDashboard'
 
@@ -23,6 +23,8 @@ export function DashboardPage(): JSX.Element {
   const [historicalData, setHistoricalData] = useState<Array<{ label: string; value: number }>>([])
   const [projectedValue, setProjectedValue] = useState(0)
   const [decisionLog, setDecisionLog] = useState<Array<{ level: 'SAFE' | 'WARN' | 'INFO' | 'ERR'; message: string }>>([])
+  const [topCategory, setTopCategory] = useState<{ name: string; amount: number } | null>(null)
+  const [daysUntilPayday, setDaysUntilPayday] = useState(0)
 
   const loadSupplementalData = useCallback(async () => {
     // 1. Score de salud financiera real
@@ -94,6 +96,31 @@ export function DashboardPage(): JSX.Element {
           return { level, message: `${alert.title} — ${alert.message}` }
         })
         setDecisionLog(entries)
+      }
+    }).catch(() => {})
+
+    // 5. Top categoría de gasto del mes actual
+    const nowInsights = new Date()
+    const ms = startOfMonth(nowInsights)
+    const me = endOfMonth(nowInsights)
+    window.api.transactions.getExpensesByCategory(ms, me).then((result: any) => {
+      if (result.success && result.data && result.data.length > 0) {
+        const sorted = [...result.data].sort((a: any, b: any) => b.amount - a.amount)
+        setTopCategory({ name: sorted[0].categoryName, amount: sorted[0].amount })
+      }
+    }).catch(() => {})
+
+    // 6. Días hasta próximo pago
+    window.api.config.get().then((result: any) => {
+      if (result.success && result.data) {
+        const payDay: number = result.data.payDay
+        const today = new Date()
+        let nextPayday = setDate(today, payDay)
+        if (isAfter(setDate(today, 1), nextPayday) || nextPayday.getTime() === today.getTime()) {
+          // If payDay already passed this month, target next month
+          nextPayday = setDate(addDays(endOfMonth(today), 1), payDay)
+        }
+        setDaysUntilPayday(differenceInCalendarDays(nextPayday, today))
       }
     }).catch(() => {})
   }, [])
@@ -231,15 +258,15 @@ export function DashboardPage(): JSX.Element {
         )}
       </section>
 
-      {/* ── Row 3: Metas + Smart Decision ──────────────────────────────── */}
+      {/* ── Row 3: Metas + Insights ───────────────────────────────────── */}
       <section className="grid grid-cols-12 gap-8 pb-20">
         {loading ? (
           <>
             <div className="col-span-12 lg:col-span-6">
               <Skeleton className="h-[300px] rounded-[28px] bg-white/5" />
             </div>
-            <div className="col-span-12 lg:col-span-6">
-              <Skeleton className="h-[300px] rounded-[28px] bg-white/5" />
+            <div className="col-span-12">
+              <Skeleton className="h-[160px] rounded-[28px] bg-white/5" />
             </div>
           </>
         ) : (
@@ -248,7 +275,12 @@ export function DashboardPage(): JSX.Element {
               goals={goals}
               onViewAll={() => navigate('/metas')}
             />
-            <SmartDecisionCard onNavigate={() => navigate('/decisiones')} />
+            <InsightsRow
+              monthIncome={monthIncome}
+              monthExpense={monthExpense}
+              topCategory={topCategory}
+              daysUntilPayday={daysUntilPayday}
+            />
           </>
         )}
       </section>

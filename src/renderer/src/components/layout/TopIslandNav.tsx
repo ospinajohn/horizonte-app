@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Wallet,
   Receipt,
-  Activity,
   Bell,
   Search,
   Menu,
@@ -16,12 +15,9 @@ import {
   CreditCard,
   TrendingUp,
   TestTube2,
-  Scale,
-  Shield,
   Repeat,
   FileText,
   HeartPulse,
-  Lightbulb,
   MessageSquare,
   Settings
 } from 'lucide-react'
@@ -31,23 +27,58 @@ interface TopIslandNavProps {
   unreadAlerts?: number
 }
 
-const MORE_LINKS = [
-  { label: 'Transferencias', path: '/transferencias', icon: <ArrowLeftRight size={14} /> },
-  { label: 'Planificador', path: '/planificador', icon: <CalendarClock size={14} /> },
-  { label: 'Metas', path: '/metas', icon: <Target size={14} /> },
-  { label: 'Presupuestos', path: '/presupuestos', icon: <BarChart3 size={14} /> },
-  { label: 'Créditos', path: '/creditos', icon: <Landmark size={14} /> },
-  { label: 'Tarjetas', path: '/tarjetas', icon: <CreditCard size={14} /> },
-  { label: 'Patrimonio', path: '/patrimonio', icon: <TrendingUp size={14} /> },
-  { label: 'Simulador', path: '/simulador', icon: <TestTube2 size={14} /> },
-  { label: 'Endeudamiento', path: '/endeudamiento', icon: <Scale size={14} /> },
-  { label: 'Fondo Emergencia', path: '/fondo-emergencia', icon: <Shield size={14} /> },
-  { label: 'Suscripciones', path: '/suscripciones', icon: <Repeat size={14} /> },
-  { label: 'Reportes', path: '/reportes', icon: <FileText size={14} /> },
-  { label: 'Salud Financiera', path: '/salud', icon: <HeartPulse size={14} /> },
-  { label: 'Recomendaciones', path: '/recomendaciones', icon: <Lightbulb size={14} /> },
-  { label: 'Decisiones', path: '/decisiones', icon: <MessageSquare size={14} /> },
-  { label: 'Configuración', path: '/configuracion', icon: <Settings size={14} /> }
+interface NavItem {
+  label: string
+  path: string
+  icon: React.ReactNode
+}
+
+interface NavGroup {
+  label: string
+  links: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Finanzas',
+    links: [
+      { label: 'Transferencias', path: '/transferencias', icon: <ArrowLeftRight size={14} /> },
+      { label: 'Presupuestos', path: '/presupuestos', icon: <BarChart3 size={14} /> },
+      { label: 'Metas', path: '/metas', icon: <Target size={14} /> },
+      { label: 'Suscripciones', path: '/suscripciones', icon: <Repeat size={14} /> },
+    ]
+  },
+  {
+    label: 'Créditos',
+    links: [
+      { label: 'Créditos', path: '/creditos', icon: <Landmark size={14} /> },
+      { label: 'Tarjetas', path: '/tarjetas', icon: <CreditCard size={14} /> },
+      { label: 'Patrimonio', path: '/patrimonio', icon: <TrendingUp size={14} /> },
+    ]
+  },
+  {
+    label: 'Análisis',
+    links: [
+      { label: 'Reportes', path: '/reportes', icon: <FileText size={14} /> },
+      { label: 'Planificador', path: '/planificador', icon: <CalendarClock size={14} /> },
+      { label: 'Laboratorio', path: '/laboratorio', icon: <TestTube2 size={14} /> },
+    ]
+  },
+  {
+    label: 'Herramientas',
+    links: [
+      { label: 'Créditos', path: '/creditos', icon: <Landmark size={14} /> },
+      { label: 'Tarjetas', path: '/tarjetas', icon: <CreditCard size={14} /> },
+      { label: 'Patrimonio', path: '/patrimonio', icon: <TrendingUp size={14} /> },
+    ]
+  },
+  {
+    label: 'Inteligencia',
+    links: [
+      { label: 'Salud Financiera', path: '/salud', icon: <HeartPulse size={14} /> },
+      { label: 'Decisiones', path: '/decisiones', icon: <MessageSquare size={14} /> },
+    ]
+  },
 ]
 
 export function TopIslandNav({ unreadAlerts = 0 }: TopIslandNavProps): JSX.Element {
@@ -75,7 +106,7 @@ export function TopIslandNav({ unreadAlerts = 0 }: TopIslandNavProps): JSX.Eleme
     { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={16} /> },
     { label: 'Cuentas', path: '/cuentas', icon: <Wallet size={16} /> },
     { label: 'Transacciones', path: '/transacciones', icon: <Receipt size={16} /> },
-    { label: 'Analítica', path: '/analitica', icon: <Activity size={16} /> }
+    { label: 'Reportes', path: '/reportes', icon: <BarChart3 size={16} /> }
   ]
 
   return (
@@ -90,7 +121,7 @@ export function TopIslandNav({ unreadAlerts = 0 }: TopIslandNavProps): JSX.Eleme
           <div className="w-8 h-8 bg-[#10B981] rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] transition-all">
             <span className="text-black font-extrabold text-sm font-['Plus_Jakarta_Sans',sans-serif]">H</span>
           </div>
-          <span className="font-['Plus_Jakarta_Sans',sans-serif] font-bold tracking-widest text-white text-sm hidden lg:block">
+          <span className="font-['Plus_Jakarta_Sans',sans-serif] font-bold tracking-widest white text-sm hidden lg:block">
             HORIZONTE
           </span>
         </div>
@@ -165,27 +196,54 @@ export function TopIslandNav({ unreadAlerts = 0 }: TopIslandNavProps): JSX.Eleme
         </div>
       </nav>
 
-      {/* Menu Desplegable */}
+      {/* Menu Desplegable Agrupado */}
       {isMenuOpen && (
-        <div className="absolute top-full mt-4 right-0 w-[420px] bg-[#0F1115]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 grid grid-cols-2 gap-x-8 gap-y-2 origin-top animate-fade-in">
-          {MORE_LINKS.map(link => {
-            const isActive = location.pathname === link.path
-            return (
-              <button
-                key={link.path}
-                onClick={() => handleMenuNavigate(link.path)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
-                  isActive ? "text-[#10B981] bg-[#10B981]/10" : "text-gray-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <div className={cn("flex items-center justify-center w-6 h-6 rounded-lg", isActive ? "text-[#10B981]" : "text-gray-500")}>
-                  {link.icon}
+        <div className="absolute top-full mt-4 right-0 w-[480px] bg-[#0F1115]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 origin-top animate-fade-in">
+          <div className="space-y-5">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-600 mb-2 px-1">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-2 gap-1">
+                  {group.links.map((link) => {
+                    const isActive = location.pathname === link.path
+                    return (
+                      <button
+                        key={link.path}
+                        onClick={() => handleMenuNavigate(link.path)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
+                          isActive ? "text-[#10B981] bg-[#10B981]/10" : "text-gray-400 hover:text-white hover:bg-white/5"
+                        )}
+                      >
+                        <div className={cn("flex items-center justify-center w-6 h-6 rounded-lg shrink-0", isActive ? "text-[#10B981]" : "text-gray-500")}>
+                          {link.icon}
+                        </div>
+                        {link.label}
+                      </button>
+                    )
+                  })}
                 </div>
-                {link.label}
-              </button>
-            )
-          })}
+              </div>
+            ))}
+          </div>
+
+          {/* Configuración al fondo */}
+          <div className="mt-5 pt-4 border-t border-white/5">
+            <button
+              onClick={() => handleMenuNavigate('/configuracion')}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left w-full",
+                location.pathname === '/configuracion' ? "text-[#10B981] bg-[#10B981]/10" : "text-gray-400 hover:text-white hover:bg-white/5"
+              )}
+            >
+              <div className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-500">
+                <Settings size={14} />
+              </div>
+              Configuración
+            </button>
+          </div>
         </div>
       )}
     </div>
