@@ -1,0 +1,400 @@
+// Prisma schema — Horizonte App
+// Base de datos local SQLite
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Configuración de la app ─────────────────────────────────────────────────
+
+model AppConfig {
+  id                  Int      @id @default(autoincrement())
+  userName            String   @default("Usuario")
+  currency            String   @default("COP")
+  language            String   @default("es")
+  theme               String   @default("dark")
+  weekStartDay        Int      @default(1) // 0=domingo, 1=lunes
+  payDay              Int      @default(15) // día del mes
+  secondPayDay        Int? // para quincena (ej: 30)
+  onboardingCompleted Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ─── Cuentas ──────────────────────────────────────────────────────────────────
+
+model Account {
+  id              Int      @id @default(autoincrement())
+  name            String
+  type            String // AccountType: BANCO, EFECTIVO, NEQUI, etc.
+  initialBalance  Float    @default(0)
+  color           String   @default("#3b82f6")
+  icon            String   @default("wallet")
+  isEmergencyFund Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions  Transaction[]
+  transfersFrom Transfer[]      @relation("TransferFrom")
+  transfersTo   Transfer[]      @relation("TransferTo")
+  savingsGoals  SavingsGoal[]
+  RecurringItem RecurringItem[]
+}
+
+// ─── Categorías ───────────────────────────────────────────────────────────────
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String // INCOME | EXPENSE
+  icon      String   @default("tag")
+  color     String   @default("#6b7280")
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  transactions     Transaction[]
+  budgetCategories BudgetCategory[]
+  RecurringItem    RecurringItem[]
+}
+
+// ─── Transacciones ────────────────────────────────────────────────────────────
+
+model Transaction {
+  id            Int      @id @default(autoincrement())
+  type          String // INCOME | EXPENSE | TRANSFER_IN | TRANSFER_OUT
+  amount        Float
+  date          DateTime
+  description   String?
+  notes         String?
+  tags          String? // JSON array como string
+  receiptPath   String? // ruta local de foto del comprobante
+  paymentMethod String? // CASH | DEBIT | CREDIT | TRANSFER
+  isRecurring   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accountId Int
+  account   Account @relation(fields: [accountId], references: [id])
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  recurringItemId Int?
+  recurringItem   RecurringItem? @relation(fields: [recurringItemId], references: [id])
+
+  linkedTransferId Int? // ID de la transacción opuesta en una transferencia
+}
+
+// ─── Transferencias ───────────────────────────────────────────────────────────
+
+model Transfer {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  date        DateTime
+  description String?
+  createdAt   DateTime @default(now())
+
+  fromAccountId Int
+  fromAccount   Account @relation("TransferFrom", fields: [fromAccountId], references: [id])
+
+  toAccountId Int
+  toAccount   Account @relation("TransferTo", fields: [toAccountId], references: [id])
+}
+
+// ─── Items recurrentes ────────────────────────────────────────────────────────
+
+model RecurringItem {
+  id          Int       @id @default(autoincrement())
+  name        String
+  type        String // INCOME | EXPENSE | PAYMENT
+  amount      Float
+  recurrence  String // RecurrenceType: NONE, DAILY, WEEKLY, BIWEEKLY, MONTHLY, ANNUAL
+  nextDate    DateTime
+  endDate     DateTime?
+  description String?
+  categoryId  Int?
+  accountId   Int?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category Category? @relation(fields: [categoryId], references: [id])
+  account  Account?  @relation(fields: [accountId], references: [id])
+
+  transactions Transaction[]
+}
+
+// ─── Presupuestos ─────────────────────────────────────────────────────────────
+
+model Budget {
+  id        Int      @id @default(autoincrement())
+  name      String
+  period    String // WEEKLY | BIWEEKLY | MONTHLY
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories BudgetCategory[]
+}
+
+model BudgetCategory {
+  id    Int   @id @default(autoincrement())
+  limit Float
+  spent Float @default(0)
+
+  budgetId Int
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([budgetId, categoryId])
+}
+
+// ─── Metas de Ahorro ──────────────────────────────────────────────────────────
+
+model SavingsGoal {
+  id            Int       @id @default(autoincrement())
+  name          String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  deadline      DateTime?
+  priority      String    @default("MEDIUM") // LOW | MEDIUM | HIGH
+  icon          String    @default("target")
+  color         String    @default("#3b82f6")
+  monthlyTarget Float? // ahorro mensual recomendado configurado por usuario
+  isCompleted   Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accountId Int?
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  contributions SavingsContribution[]
+}
+
+model SavingsContribution {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  date        DateTime @default(now())
+  notes       String?
+  isAutomatic Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  goalId Int
+  goal   SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+// ─── Alertas ──────────────────────────────────────────────────────────────────
+
+model Alert {
+  id          Int      @id @default(autoincrement())
+  type        String // AlertType
+  severity    String // INFO | WARNING | CRITICAL
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  isDismissed Boolean  @default(false)
+  relatedId   Int? // ID del recurso relacionado (crédito, presupuesto, etc.)
+  relatedType String? // tipo del recurso relacionado
+  createdAt   DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FASE 2 — Créditos, Tarjetas, Activos, Suscripciones, Simulación
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Créditos ─────────────────────────────────────────────────────────────────
+
+model Credit {
+  id               Int      @id @default(autoincrement())
+  entityName       String                          // banco o entidad
+  totalAmount      Float                           // valor solicitado
+  pendingAmount    Float                           // saldo pendiente actual
+  annualRate       Float                           // tasa EA en %
+  monthlyPayment   Float                           // cuota mensual
+  paymentDay       Int                             // día del mes para el pago
+  totalInstallments Int                            // cuotas totales
+  paidInstallments  Int    @default(0)             // cuotas pagadas
+  status           String  @default("ACTIVE")      // ACTIVE | PAID | OVERDUE
+  startDate        DateTime
+  notes            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  recurringItemId  Int?                            // cuota en RecurringItem
+  amortizationRows AmortizationRow[]
+}
+
+model AmortizationRow {
+  id             Int    @id @default(autoincrement())
+  installment    Int                               // número de cuota
+  payment        Float                             // cuota total
+  principal      Float                             // abono a capital
+  interest       Float                             // interés
+  balance        Float                             // saldo después del pago
+  dueDate        DateTime
+  isPaid         Boolean @default(false)
+
+  creditId       Int
+  credit         Credit @relation(fields: [creditId], references: [id], onDelete: Cascade)
+}
+
+// ─── Tarjetas de Crédito ──────────────────────────────────────────────────────
+
+model CreditCard {
+  id               Int      @id @default(autoincrement())
+  name             String
+  bank             String
+  totalLimit       Float
+  cutDay           Int                             // día de corte
+  paymentDay       Int                             // día de pago
+  annualRate       Float   @default(0)            // tasa de interés EA %
+  color            String  @default("#6366f1")
+  isActive         Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  purchases        CreditCardPurchase[]
+}
+
+model CreditCardPurchase {
+  id               Int      @id @default(autoincrement())
+  description      String
+  amount           Float
+  date             DateTime
+  installments     Int      @default(1)           // cuotas (1 = al contado)
+  isAdvance        Boolean  @default(false)        // avance en efectivo
+  billingPeriod    String?                         // ej: "2025-07" para identificar el corte
+
+  cardId           Int
+  card             CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// ─── Activos ──────────────────────────────────────────────────────────────────
+
+model Asset {
+  id               Int      @id @default(autoincrement())
+  name             String
+  type             String                          // REAL_ESTATE | VEHICLE | TECH | INVESTMENT | OTHER
+  currentValue     Float
+  acquisitionValue Float    @default(0)
+  acquisitionDate  DateTime?
+  description      String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ─── Pasivos adicionales (deudas que no son créditos formales) ────────────────
+
+model Liability {
+  id               Int      @id @default(autoincrement())
+  name             String
+  amount           Float
+  creditor         String?                         // a quién se le debe
+  dueDate          DateTime?
+  notes            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ─── Suscripciones ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id               Int      @id @default(autoincrement())
+  name             String
+  amount           Float                           // costo mensual
+  billingDay       Int                             // día del mes que se cobra
+  category         String   @default("ENTERTAINMENT") // ENTERTAINMENT | PRODUCTIVITY | CLOUD | OTHER
+  accountId        Int?                            // cuenta de débito
+  isActive         Boolean  @default(true)
+  lastBilledAmount Float?                          // último cobro real (para detectar aumentos)
+  notes            String?
+  color            String   @default("#6366f1")
+  icon             String   @default("repeat")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  recurringItemId  Int?                            // vinculada a RecurringItem
+}
+
+// ─── Escenarios de Simulación ─────────────────────────────────────────────────
+
+model SimulationScenario {
+  id               Int      @id @default(autoincrement())
+  name             String
+  type             String                          // SALARY_CHANGE | NEW_CREDIT | EARLY_PAYMENT | BIG_PURCHASE | UNEMPLOYMENT | EXPENSE_CHANGE | OTHER
+  description      String?
+  parameters       String                          // JSON con los parámetros del escenario
+  results          String?                         // JSON con los resultados calculados
+  createdAt        DateTime @default(now())
+}
+
+// ─── Snapshots de Patrimonio ──────────────────────────────────────────────────
+
+model PatrimonySnapshot {
+  id               Int      @id @default(autoincrement())
+  totalAssets      Float
+  totalLiabilities Float
+  netWorth         Float
+  snapshotDate     DateTime @default(now())        // fecha del snapshot (1 por mes)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FASE 3 — Salud Financiera, Recomendaciones, Centro de Decisiones
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Snapshots de Salud Financiera ────────────────────────────────────────────
+
+model HealthSnapshot {
+  id                    Int      @id @default(autoincrement())
+  score                 Float                         // 0-100
+  liquidityScore        Float
+  savingsScore          Float
+  debtScore             Float
+  patrimonyScore        Float
+  budgetScore           Float
+  emergencyFundScore    Float
+  trendScore            Float
+  diversificationScore  Float
+  snapshotDate          DateTime @default(now())      // 1 por mes
+  recommendations       String?                       // JSON array de strings
+}
+
+// ─── Log de Recomendaciones ───────────────────────────────────────────────────
+
+model RecommendationLog {
+  id          Int      @id @default(autoincrement())
+  type        String                                  // SAVINGS | DEBT_OPTIMIZATION | TIMING | INVESTMENT | OTHER
+  title       String
+  description String
+  impact      String?                                 // descripción del impacto estimado
+  actionPath  String?                                 // ruta del módulo al que navegar (/creditos, /metas, etc.)
+  isRead      Boolean  @default(false)
+  isApplied   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// ─── Historial del Centro de Decisiones ──────────────────────────────────────
+
+model DecisionQuery {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String
+  context   String?                                   // JSON con el contexto financiero usado
+  createdAt DateTime @default(now())
+}

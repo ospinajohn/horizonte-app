@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="utf-8">
+  <meta name="kombai-design-canvas" content="true">
+  <base href="http://localhost:19541/">
+  
+  
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  
+  <style>html, body { margin: 0; padding: 0; } #root { display: contents; }</style>
+</head><body>
+  <div id="root"><div class="min-h-screen bg-[#08090B] text-white font-['Inter',sans-serif] selection:bg-[#10B981]/30 overflow-hidden" data-kid="1" data-name="horizonte ultimate dashboard">
+    <style data-kid="0">
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css');
+
+        :root {
+            --brand-emerald: #10B981;
+            --brand-mint: #3EB489;
+            --bg-deep: #08090B;
+            --bg-card: #121418;
+            --border-pro: rgba(255, 255, 255, 0.05);
+        }
+
+        .font-plus { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .premium-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-pro);
+            border-radius: 28px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        }
+
+        /* High-Impact Chart Styles */
+        .chart-glow-path {
+            filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6));
+        }
+        .chart-area-fill {
+            fill: url(#chart-gradient);
+            opacity: 0.1;
+        }
+
+        /* Pro Sidebar Marker */
+        .nav-active-pro {
+            color: var(--brand-emerald);
+            background: rgba(16, 185, 129, 0.08);
+            border-radius: 16px;
+        }
+
+        /* Scanline / Grid effect */
+        .grid-overlay {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* Status Dot Pulse */
+        .dot-pulse {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+    </style>
+    <div class="flex h-screen overflow-hidden" data-kid="1-1">
+        
+        <aside class="w-24 bg-[#0A0B0D] border-r border-white/5 flex flex-col items-center py-10 z-50 shrink-0" data-kid="1-1-1" data-name="sidebar navigation container">
+            <div class="w-12 h-12 bg-[var(--brand-emerald)] rounded-2xl flex items-center justify-center mb-16 shadow-[0_0_25px_rgba(16,185,129,0.4)]" data-kid="1-1-1-1" data-name="brand icon container">
+                <i class="ti ti-chart-arcs text-white text-2xl" data-kid="1-1-1-1-1" data-name="chart arcs icon">
+                </i>
+            </div>
+            <nav class="flex flex-col gap-6" data-kid="1-1-1-2" data-name="vertical navigation group">
+                <a class="w-14 h-14 flex items-center justify-center nav-active-pro" data-kid="1-1-1-2-1" data-name="dashboard navigation link" href="#">
+                    <i class="ti ti-layout-dashboard text-2xl" data-kid="1-1-1-2-1-1" data-name="dashboard icon">
+                    </i>
+                </a>
+                <a class="w-14 h-14 flex items-center justify-center text-gray-600 hover:text-white transition-all" data-kid="1-1-1-2-2" data-name="receipt navigation link" href="#">
+                    <i class="ti ti-receipt-2 text-2xl" data-kid="1-1-1-2-2-1" data-name="receipt icon">
+                    </i>
+                </a>
+                <a class="w-14 h-14 flex items-center justify-center text-gray-600 hover:text-white transition-all" data-kid="1-1-1-2-3" data-name="timeline navigation link" href="#">
+                    <i class="ti ti-timeline-event text-2xl" data-kid="1-1-1-2-3-1" data-name="timeline icon">
+                    </i>
+                </a>
+                <a class="w-14 h-14 flex items-center justify-center text-gray-600 hover:text-white transition-all" data-kid="1-1-1-2-4" data-name="targets navigation link" href="#">
+                    <i class="ti ti-target text-2xl" data-kid="1-1-1-2-4-1" data-name="target icon">
+                    </i>
+                </a>
+                <a class="w-14 h-14 flex items-center justify-center text-gray-600 hover:text-white transition-all" data-kid="1-1-1-2-5" data-name="activity navigation link" href="#">
+                    <i class="ti ti-activity text-2xl" data-kid="1-1-1-2-5-1" data-name="activity icon">
+                    </i>
+                </a>
+            </nav>
+            <div class="mt-auto flex flex-col gap-8 items-center" data-kid="1-1-1-3" data-name="sidebar settings and profile group">
+                <i class="ti ti-settings text-gray-600 text-2xl hover:text-white cursor-pointer" data-kid="1-1-1-3-1" data-name="settings icon">
+                </i>
+                <div class="w-12 h-12 rounded-full border-2 border-white/10 p-0.5" data-kid="1-1-1-3-2" data-name="user avatar container">
+                    <img alt="User" class="w-full h-full rounded-full object-cover grayscale" data-kid="1-1-1-3-2-1" data-name="user avatar image" src="https://i.pravatar.cc/100?u=horizonte-pro">
+                </div>
+            </div>
+        </aside>
+        
+        <main class="flex-1 overflow-y-auto bg-[#08090B] grid-overlay" data-kid="1-1-2" data-name="dashboard main content area">
+            <div class="max-w-[1600px] mx-auto p-12 space-y-12" data-kid="1-1-2-1" data-name="dashboard grid container">
+                
+                <header class="flex justify-between items-end" data-kid="1-1-2-1-1" data-name="page header section">
+                    <div data-kid="1-1-2-1-1-1" data-name="page title group">
+                        <p class="text-[10px] font-bold text-[var(--brand-emerald)] uppercase tracking-[0.4em] mb-3" data-kid="1-1-2-1-1-1-1" data-name="system status label">
+                            Horizonte v1.0 // System Active
+                        </p>
+                        <h1 class="text-4xl font-plus font-extrabold tracking-tight" data-kid="1-1-2-1-1-1-2" data-name="page main headline">
+                            Financial Command Center
+                        </h1>
+                    </div>
+                    <div class="flex items-center gap-10" data-kid="1-1-2-1-1-2" data-name="header utility controls">
+                        <div class="text-right" data-kid="1-1-2-1-1-2-1" data-name="network latency group">
+                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1" data-kid="1-1-2-1-1-2-1-1" data-name="latency label">
+                                Network Latency
+                            </p>
+                            <div class="flex items-center gap-2 justify-end" data-kid="1-1-2-1-1-2-1-2" data-name="latency display group">
+                                <span class="text-sm font-mono font-bold text-gray-300" data-kid="1-1-2-1-1-2-1-2-1" data-name="latency value">
+                                    12ms
+                                </span>
+                                <div class="w-2 h-2 rounded-full bg-[var(--brand-emerald)] dot-pulse" data-kid="1-1-2-1-1-2-1-2-2" data-name="active status pulse dot">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-white/10 transition-all" data-kid="1-1-2-1-1-2-2" data-name="export report button">
+                            Export Report
+                        </button>
+                    </div>
+                </header>
+                
+                <section class="grid grid-cols-12 gap-8" data-kid="1-1-2-1-2" data-name="primary metrics grid row">
+                    
+                    <div class="col-span-12 lg:col-span-8 premium-card p-10 flex flex-col justify-between min-h-[300px] relative overflow-hidden group" data-kid="1-1-2-1-2-1" data-name="liquidity balance card">
+                        <div class="absolute -right-20 -top-20 w-96 h-96 bg-[var(--brand-emerald)] opacity-5 blur-[100px] rounded-full pointer-events-none" data-kid="1-1-2-1-2-1-3" data-name="decorative background glow">
+                        </div>
+                        <div class="flex justify-between items-start relative z-10" data-kid="1-1-2-1-2-1-1" data-name="liquidity header group">
+                            <div data-kid="1-1-2-1-2-1-1-1" data-name="liquidity label group">
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-3" data-kid="1-1-2-1-2-1-1-1-1" data-name="wallet icon">
+                                    <i class="ti ti-wallet" data-kid="1-1-2-1-2-1-1-1-1-1" data-name="liquidity label text">
+                                    </i>
+                                    Liquidez Total Disponible
+                                </span>
+                                <div class="flex items-baseline gap-4 mt-6" data-kid="1-1-2-1-2-1-1-1-2" data-name="liquidity amount group">
+                                    <span class="text-4xl text-gray-600 font-light font-plus" data-kid="1-1-2-1-2-1-1-1-2-1" data-name="currency symbol">
+                                        $
+                                    </span>
+                                    <h2 class="text-8xl font-plus font-bold tracking-tighter" data-dynamic="true" data-kid="1-1-2-1-2-1-1-1-2-2" data-name="main balance display" data-reason="text value counted up from 0 by animation script" id="main-balance-count">
+                                        1.500.000
+                                    </h2>
+                                </div>
+                            </div>
+                            <div class="text-right" data-kid="1-1-2-1-2-1-1-2" data-name="liquidity growth indicator group">
+                                <div class="bg-emerald-500/10 text-[var(--brand-emerald)] px-4 py-2 rounded-2xl border border-emerald-500/20 inline-flex items-center gap-2" data-kid="1-1-2-1-2-1-1-2-1" data-name="growth percentage badge">
+                                    <i class="ti ti-trending-up" data-kid="1-1-2-1-2-1-1-2-1-1" data-name="trending up icon">
+                                    </i>
+                                    <span class="font-bold text-sm" data-kid="1-1-2-1-2-1-1-2-1-2" data-name="growth percentage value">
+                                        +12.4%
+                                    </span>
+                                </div>
+                                <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-wider" data-kid="1-1-2-1-2-1-1-2-2" data-name="growth comparison label">
+                                    vs Last Month
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-12 mt-12 border-t border-white/5 pt-10 relative z-10" data-kid="1-1-2-1-2-1-2" data-name="financial summary stats group">
+                            <div data-kid="1-1-2-1-2-1-2-1" data-name="monthly income stat">
+                                <p class="text-[10px] text-gray-600 uppercase font-bold tracking-wider mb-2" data-kid="1-1-2-1-2-1-2-1-1" data-name="monthly income label">
+                                    Ingresos Mes
+                                </p>
+                                <p class="text-2xl font-plus font-bold text-gray-200" data-kid="1-1-2-1-2-1-2-1-2" data-name="monthly income value">
+                                    $8.420.000
+                                </p>
+                            </div>
+                            <div class="h-10 w-px bg-white/5" data-kid="1-1-2-1-2-1-2-2" data-name="separator line 1">
+                            </div>
+                            <div data-kid="1-1-2-1-2-1-2-3" data-name="monthly expense stat">
+                                <p class="text-[10px] text-gray-600 uppercase font-bold tracking-wider mb-2" data-kid="1-1-2-1-2-1-2-3-1" data-name="monthly expense label">
+                                    Gastos Mes
+                                </p>
+                                <p class="text-2xl font-plus font-bold text-gray-200" data-kid="1-1-2-1-2-1-2-3-2" data-name="monthly expense value">
+                                    $3.150.200
+                                </p>
+                            </div>
+                            <div class="h-10 w-px bg-white/5" data-kid="1-1-2-1-2-1-2-4" data-name="separator line 2">
+                            </div>
+                            <div data-kid="1-1-2-1-2-1-2-5" data-name="total debt stat">
+                                <p class="text-[10px] text-gray-600 uppercase font-bold tracking-wider mb-2" data-kid="1-1-2-1-2-1-2-5-1" data-name="total debt label">
+                                    Deuda Total
+                                </p>
+                                <p class="text-2xl font-plus font-bold text-rose-500" data-kid="1-1-2-1-2-1-2-5-2" data-name="total debt value">
+                                    $2.150.400
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-12 lg:col-span-4 premium-card p-10 flex flex-col justify-between bg-gradient-to-br from-[#121418] to-[#0A0B0E]" data-kid="1-1-2-1-2-2" data-name="next payday projection card">
+                        <div class="flex justify-between items-start" data-kid="1-1-2-1-2-2-2" data-name="payday header group">
+                            <div data-kid="1-1-2-1-2-2-2-1" data-name="payday title group">
+                                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2" data-kid="1-1-2-1-2-2-2-1-1" data-name="payday label">
+                                    Proyección Inmediata
+                                </p>
+                                <h3 class="text-xl font-bold" data-kid="1-1-2-1-2-2-2-1-2" data-name="payday subheadline">
+                                    Próxima Quincena
+                                </h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20" data-kid="1-1-2-1-2-2-2-2" data-name="calendar icon container">
+                                <i class="ti ti-calendar-stats text-2xl" data-kid="1-1-2-1-2-2-2-2-1" data-name="calendar icon">
+                                </i>
+                            </div>
+                        </div>
+                        <div class="py-8" data-kid="1-1-2-1-2-2-3" data-name="payday amount display group">
+                            <h4 class="text-5xl font-plus font-bold text-blue-400" data-kid="1-1-2-1-2-2-3-1" data-name="payday amount value">
+                                +$1.500.000
+                            </h4>
+                            <p class="text-sm text-gray-500 mt-2" data-kid="1-1-2-1-2-2-3-2" data-name="payday date description">
+                                Programado para el
+                                <span class="text-gray-200 font-bold" data-kid="1-1-2-1-2-2-3-2-1" data-name="payday date value">
+                                    15 de Julio
+                                </span>
+                            </p>
+                        </div>
+                        <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4 border border-white/5" data-kid="1-1-2-1-2-2-1" data-name="payday information box">
+                            <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400" data-kid="1-1-2-1-2-2-1-1" data-name="info icon container">
+                                <i class="ti ti-info-circle" data-kid="1-1-2-1-2-2-1-1-1" data-name="info icon">
+                                </i>
+                            </div>
+                            <p class="text-xs text-gray-400 leading-tight" data-kid="1-1-2-1-2-2-1-2" data-name="payday info text">
+                                Tu flujo de caja será
+                                <span class="text-white font-bold" data-kid="1-1-2-1-2-2-1-2-1" data-name="cash flow status text">
+                                    positivo
+                                </span>
+                                tras el pago de obligaciones.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="grid grid-cols-12 gap-8" data-kid="1-1-2-1-3" data-name="analytics and health section">
+                    
+                    <div class="col-span-12 lg:col-span-9 premium-card p-10 flex flex-col" data-kid="1-1-2-1-3-1" data-name="financial telemetry chart card">
+                        <div class="flex justify-between items-center mb-12" data-kid="1-1-2-1-3-1-1" data-name="telemetry header group">
+                            <div data-kid="1-1-2-1-3-1-1-1" data-name="telemetry title group">
+                                <h3 class="text-2xl font-plus font-bold" data-kid="1-1-2-1-3-1-1-1-1" data-name="telemetry title">
+                                    Financial Vector Telemetry
+                                </h3>
+                                <p class="text-sm text-gray-500 mt-1" data-kid="1-1-2-1-3-1-1-1-2" data-name="telemetry description">
+                                    Simulación de crecimiento y flujo de caja proyectado a 6 meses.
+                                </p>
+                            </div>
+                            <div class="flex bg-[#0A0B0D] p-1.5 rounded-2xl border border-white/5" data-kid="1-1-2-1-3-1-1-2" data-name="telemetry view toggle">
+                                <button class="px-6 py-2 rounded-xl bg-[var(--brand-emerald)] text-black text-xs font-bold shadow-lg shadow-[var(--brand-emerald)]/20" data-kid="1-1-2-1-3-1-1-2-1" data-name="proyección toggle button">
+                                    Proyección
+                                </button>
+                                <button class="px-6 py-2 text-xs font-bold text-gray-500 hover:text-white transition-all" data-kid="1-1-2-1-3-1-1-2-2" data-name="histórico toggle button">
+                                    Histórico
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 min-h-[400px] relative bg-black/20 rounded-[32px] border border-white/5 overflow-hidden px-6 pt-16" data-kid="1-1-2-1-3-1-2" data-name="chart plot container">
+                            <svg class="w-full h-full" data-kid="1-1-2-1-3-1-2-1" data-name="telemetry line chart svg" preserveaspectratio="none" viewbox="0 0 1000 300">
+                                <defs data-kid="2">
+                                    <lineargradient id="chart-gradient" x1="0%" x2="0%" y1="0%" y2="100%" data-kid="3">
+                                        <stop offset="0%" style="stop-color:var(--brand-emerald);stop-opacity:0.3" data-kid="4">
+                                        </stop>
+                                        <stop offset="100%" style="stop-color:var(--brand-emerald);stop-opacity:0" data-kid="5">
+                                        </stop>
+                                    </lineargradient>
+                                </defs>
+                                
+                                <path class="chart-area-fill" d="M0,280 L0,200 Q150,220 300,150 T600,100 T1000,20 L1000,280 Z" data-kid="6">
+                                </path>
+                                
+                                <path class="chart-glow-path" d="M0,200 Q150,220 300,150 T600,100 T1000,20" fill="none" id="telemetry-path" stroke="var(--brand-emerald)" stroke-linecap="round" stroke-width="4" data-kid="7">
+                                </path>
+                                
+                                <circle class="animate-pulse" cx="300" cy="150" fill="var(--brand-emerald)" r="5" data-kid="8">
+                                </circle>
+                                <circle cx="600" cy="100" fill="var(--brand-emerald)" r="5" data-kid="9">
+                                </circle>
+                                <circle class="drop-shadow-[0_0_8px_#fff]" cx="1000" cy="20" fill="white" r="6" data-kid="10">
+                                </circle>
+                            </svg>
+                            
+                            <div class="flex justify-between mt-8 px-4 text-[10px] text-gray-600 font-mono font-bold uppercase tracking-widest" data-kid="1-1-2-1-3-1-2-2" data-name="x-axis timeline labels">
+                                <span data-kid="1-1-2-1-3-1-2-2-1" data-name="timeline label 1">
+                                    Ahora
+                                </span>
+                                <span data-kid="1-1-2-1-3-1-2-2-2" data-name="timeline label 2">
+                                    Próxima Q
+                                </span>
+                                <span data-kid="1-1-2-1-3-1-2-2-3" data-name="timeline label 3">
+                                    Próximo Mes
+                                </span>
+                                <span data-kid="1-1-2-1-3-1-2-2-4" data-name="timeline label 4">
+                                    +3 Meses
+                                </span>
+                                <span data-kid="1-1-2-1-3-1-2-2-5" data-name="timeline label 5">
+                                    +6 Meses
+                                </span>
+                            </div>
+                            
+                            <div class="absolute top-20 right-32 bg-black/80 border border-white/10 p-4 rounded-2xl backdrop-blur-md" data-kid="1-1-2-1-3-1-2-3" data-name="chart tooltip box">
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1" data-kid="1-1-2-1-3-1-2-3-1" data-name="tooltip label">
+                                    Saldo Proyectado
+                                </p>
+                                <p class="text-xl font-plus font-bold text-[var(--brand-emerald)]" data-kid="1-1-2-1-3-1-2-3-2" data-name="tooltip value">
+                                    $4.250.000
+                                </p>
+                                <p class="text-[9px] text-gray-600 mt-1 italic" data-kid="1-1-2-1-3-1-2-3-3" data-name="tooltip footer">
+                                    Basado en tendencias de ahorro actuales.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-12 lg:col-span-3 flex flex-col gap-8" data-kid="1-1-2-1-3-2" data-name="health and log column">
+                        
+                        <div class="premium-card p-10 flex flex-col items-center justify-center text-center flex-1" data-kid="1-1-2-1-3-2-1" data-name="financial health card">
+                            <p class="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-10" data-kid="1-1-2-1-3-2-1-1" data-name="health label">
+                                Salud Financiera
+                            </p>
+                            <div class="relative w-44 h-44 flex items-center justify-center" data-kid="1-1-2-1-3-2-1-2" data-name="health radial gauge group">
+                                <svg class="w-full h-full transform -rotate-90" data-kid="1-1-2-1-3-2-1-2-1" data-name="radial gauge svg">
+                                    <circle cx="88" cy="88" fill="transparent" r="80" stroke="rgba(255,255,255,0.03)" stroke-width="12" data-kid="11">
+                                    </circle>
+                                    <circle class="drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" cx="88" cy="88" fill="transparent" r="80" stroke="var(--brand-emerald)" stroke-dasharray="502.4" stroke-dashoffset="75.3" stroke-width="12" data-kid="12">
+                                    </circle>
+                                </svg>
+                                <div class="absolute flex flex-col items-center" data-kid="1-1-2-1-3-2-1-2-2" data-name="gauge central text group">
+                                    <span class="text-6xl font-plus font-bold" data-dynamic="true" data-kid="1-1-2-1-3-2-1-2-2-1" data-name="health score value" data-reason="text value counted up from 0 by animation script" id="health-score-pro">
+                                        85
+                                    </span>
+                                    <span class="text-[10px] text-gray-500 font-bold uppercase mt-1" data-kid="1-1-2-1-3-2-1-2-2-2" data-name="score quality label">
+                                        Excellent
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="mt-12 w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-white/10 transition-all" data-kid="1-1-2-1-3-2-1-3" data-name="recommendations button">
+                                Ver Recomendaciones
+                            </button>
+                        </div>
+                        
+                        <div class="premium-card p-8 bg-black/40 flex-1 border border-emerald-500/20" data-kid="1-1-2-1-3-2-2" data-name="decision terminal card">
+                            <div class="flex items-center gap-3 mb-6" data-kid="1-1-2-1-3-2-2-1" data-name="terminal header group">
+                                <i class="ti ti-terminal text-[var(--brand-emerald)]" data-kid="1-1-2-1-3-2-2-1-1" data-name="terminal icon">
+                                </i>
+                                <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest" data-kid="1-1-2-1-3-2-2-1-2" data-name="terminal title">
+                                    Decision_Log_v1
+                                </span>
+                            </div>
+                            <div class="space-y-4 font-mono text-[10px] text-gray-400" data-kid="1-1-2-1-3-2-2-2" data-name="terminal log lines">
+                                <p data-kid="1-1-2-1-3-2-2-2-1" data-name="log line 1">
+                                    <span class="text-[var(--brand-emerald)]" data-kid="1-1-2-1-3-2-2-2-1-1" data-name="log status 1">
+                                        [SAFE]
+                                    </span>
+                                    Posibilidad de compra: Smartwatch (Prob 92%)
+                                </p>
+                                <p data-kid="1-1-2-1-3-2-2-2-2" data-name="log line 2">
+                                    <span class="text-amber-500" data-kid="1-1-2-1-3-2-2-2-2-1" data-name="log status 2">
+                                        [WARN]
+                                    </span>
+                                    Gasto en 'Restaurantes' excede presupuesto (35%)
+                                </p>
+                                <p data-kid="1-1-2-1-3-2-2-2-3" data-name="log line 3">
+                                    <span class="text-blue-400" data-kid="1-1-2-1-3-2-2-2-3-1" data-name="log status 3">
+                                        [INFO]
+                                    </span>
+                                    Meta 'Viaje Japón' alcanzará 100% en 4 meses.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="grid grid-cols-12 gap-8 pb-20" data-kid="1-1-2-1-4" data-name="savings goals and actionable wisdom">
+                    <div class="col-span-12 lg:col-span-6 premium-card p-10" data-kid="1-1-2-1-4-1" data-name="savings goals card">
+                        <div class="flex justify-between items-center mb-10" data-kid="1-1-2-1-4-1-1" data-name="savings header group">
+                            <h4 class="text-xl font-plus font-bold" data-kid="1-1-2-1-4-1-1-1" data-name="savings title">
+                                Metas de Ahorro
+                            </h4>
+                            <button class="text-xs font-bold text-[var(--brand-emerald)] hover:underline" data-kid="1-1-2-1-4-1-1-2" data-name="savings link">
+                                Ver todas
+                            </button>
+                        </div>
+                        <div class="space-y-8" data-kid="1-1-2-1-4-1-2" data-name="goals progress list">
+                            <div data-kid="1-1-2-1-4-1-2-1" data-name="emergency fund goal">
+                                <div class="flex justify-between mb-3 text-sm" data-kid="1-1-2-1-4-1-2-1-1" data-name="emergency fund info group">
+                                    <span class="font-medium text-gray-300 italic" data-kid="1-1-2-1-4-1-2-1-1-1" data-name="emergency fund title">
+                                        Fondo de Emergencia
+                                    </span>
+                                    <span class="font-bold text-[var(--brand-emerald)]" data-kid="1-1-2-1-4-1-2-1-1-2" data-name="emergency fund percentage">
+                                        72%
+                                    </span>
+                                </div>
+                                <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden" data-kid="1-1-2-1-4-1-2-1-2" data-name="emergency fund progress bar track">
+                                    <div class="h-full w-[72%] bg-[var(--brand-emerald)] shadow-[0_0_10px_#10B981]" data-kid="1-1-2-1-4-1-2-1-2-1" data-name="emergency fund progress bar">
+                                    </div>
+                                </div>
+                            </div>
+                            <div data-kid="1-1-2-1-4-1-2-2" data-name="japan travel goal">
+                                <div class="flex justify-between mb-3 text-sm" data-kid="1-1-2-1-4-1-2-2-1" data-name="japan travel info group">
+                                    <span class="font-medium text-gray-300 italic" data-kid="1-1-2-1-4-1-2-2-1-1" data-name="japan travel title">
+                                        Viaje a Japón
+                                    </span>
+                                    <span class="font-bold text-blue-400" data-kid="1-1-2-1-4-1-2-2-1-2" data-name="japan travel percentage">
+                                        45%
+                                    </span>
+                                </div>
+                                <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden" data-kid="1-1-2-1-4-1-2-2-2" data-name="japan travel progress bar track">
+                                    <div class="h-full w-[45%] bg-blue-500" data-kid="1-1-2-1-4-1-2-2-2-1" data-name="japan travel progress bar">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-12 lg:col-span-6 premium-card p-10 flex flex-col justify-center relative overflow-hidden" data-kid="1-1-2-1-4-2" data-name="smart decision action card">
+                        <div class="flex items-center gap-6" data-kid="1-1-2-1-4-2-1" data-name="action content group">
+                            <div class="w-16 h-16 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500 border border-pink-500/20" data-kid="1-1-2-1-4-2-1-1" data-name="action icon container">
+                                <i class="ti ti-bulb-filled text-3xl" data-kid="1-1-2-1-4-2-1-1-1" data-name="action bulb icon">
+                                </i>
+                            </div>
+                            <div class="flex-1" data-kid="1-1-2-1-4-2-1-2" data-name="action text group">
+                                <h4 class="text-xl font-plus font-bold mb-1" data-kid="1-1-2-1-4-2-1-2-1" data-name="action title">
+                                    Smart Decision: "¿Puedo comprar esto?"
+                                </h4>
+                                <p class="text-sm text-gray-500" data-kid="1-1-2-1-4-2-1-2-2" data-name="action description">
+                                    El asistente analiza tu futuro flujo de caja antes de que gastes hoy.
+                                </p>
+                            </div>
+                            <button class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform" data-kid="1-1-2-1-4-2-1-3" data-name="action navigate button">
+                                <i class="ti ti-arrow-right text-xl" data-kid="1-1-2-1-4-2-1-3-1" data-name="right arrow icon">
+                                </i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" data-kid="13"></script>
+    <script type="module" data-kid="14">
+        import { animate } from 'https://esm.sh/animejs@4';
+
+        // 1. Staggered Entrance
+        gsap.from(".premium-card", {
+            y: 50,
+            opacity: 0,
+            duration: 1.2,
+            stagger: 0.12,
+            ease: "expo.out",
+            delay: 0.2
+        });
+
+        // 2. Pro Count Up Animation for Main Balance
+        const balanceState = { value: 0 };
+        animate(balanceState, {
+            value: 1500000,
+            duration: 2500,
+            ease: 'out(3)',
+            onUpdate: () => {
+                document.getElementById('main-balance-count').textContent = Math.floor(balanceState.value).toLocaleString('es-CO');
+            }
+        });
+
+        // 3. Health Score Animation
+        const healthState = { value: 0 };
+        animate(healthState, {
+            value: 85,
+            duration: 2000,
+            delay: 1000,
+            ease: 'out(3)',
+            onUpdate: () => {
+                document.getElementById('health-score-pro').textContent = Math.floor(healthState.value);
+            }
+        });
+
+        // 4. Path Drawing Animation
+        const path = document.getElementById('telemetry-path');
+        const length = path.getTotalLength();
+        path.style.strokeDasharray = length;
+        path.style.strokeDashoffset = length;
+        
+        animate(path, {
+            strokeDashoffset: 0,
+            duration: 3000,
+            delay: 800,
+            ease: 'inOut(2)'
+        });
+    </script>
+</div>
+</div>
+</body></html>
