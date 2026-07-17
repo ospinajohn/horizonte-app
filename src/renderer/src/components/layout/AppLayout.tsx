@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { TitleBar } from './TitleBar'
-import { Sidebar } from './Sidebar'
+import { TopIslandNav } from './TopIslandNav'
 
 export function AppLayout(): JSX.Element {
   const [unreadAlerts, setUnreadAlerts] = useState(0)
@@ -25,17 +25,17 @@ export function AppLayout(): JSX.Element {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-[#08090B] text-white overflow-hidden select-none">
+    <div className="flex flex-col h-screen bg-[#08090B] text-white overflow-hidden select-none relative">
       {/* Barra de título custom (sin chrome nativa de Windows) */}
       <TitleBar />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar de navegación */}
-        <Sidebar unreadAlerts={unreadAlerts} />
+      {/* Top Island Navigation */}
+      <TopIslandNav unreadAlerts={unreadAlerts} />
 
+      <div className="flex flex-1 overflow-hidden">
         {/* Área de contenido principal con grid overlay */}
         <main
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto pt-28" /* pt-28 para dejar espacio al Island Nav flotante */
           style={{
             backgroundImage: `
               linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
