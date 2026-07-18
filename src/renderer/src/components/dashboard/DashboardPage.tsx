@@ -72,7 +72,6 @@ export function DashboardPage(): JSX.Element {
 
     // 3. Datos históricos del tab "Histórico" (últimos 6 meses de cashflow real)
     const now = new Date()
-    const monthSummaries: Array<{ label: string; value: number }> = []
     const promises = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
       return window.api.transactions.getMonthSummary(d.getFullYear(), d.getMonth() + 1)
@@ -265,8 +264,8 @@ export function DashboardPage(): JSX.Element {
             <div className="col-span-12 lg:col-span-6">
               <Skeleton className="h-[300px] rounded-[28px] bg-white/5" />
             </div>
-            <div className="col-span-12">
-              <Skeleton className="h-[160px] rounded-[28px] bg-white/5" />
+            <div className="col-span-12 lg:col-span-6">
+              <Skeleton className="h-[300px] rounded-[28px] bg-white/5" />
             </div>
           </>
         ) : (
