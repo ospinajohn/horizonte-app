@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { AnalyticsData } from '../../../../shared/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -573,24 +574,26 @@ export function ReportsPage(): JSX.Element {
               </div>
               {period === 'monthly' && (
                 <>
-                  <select
-                    value={selMonth}
-                    onChange={(e) => setSelMonth(Number(e.target.value))}
-                    className="bg-[#0F1115] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none"
-                  >
-                    {MONTHS.map((m, i) => (
-                      <option key={i} value={i + 1}>{m}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={selYear}
-                    onChange={(e) => setSelYear(Number(e.target.value))}
-                    className="bg-[#0F1115] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none"
-                  >
-                    {years.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+                  <Select value={String(selMonth)} onValueChange={(v) => setSelMonth(Number(v))}>
+                    <SelectTrigger className="w-auto h-auto bg-[#0F1115] px-3 py-2 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((m, i) => (
+                        <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(selYear)} onValueChange={(v) => setSelYear(Number(v))}>
+                    <SelectTrigger className="w-auto h-auto bg-[#0F1115] px-3 py-2 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </>
               )}
             </div>

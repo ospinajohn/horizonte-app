@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { Account, AccountType, CreateAccountDto } from '../../../../shared/types'
 
 const ACCOUNT_TYPES: AccountType[] = [
@@ -42,7 +43,7 @@ interface AccountFormModalProps {
 export function AccountFormModal({ open, onClose, onSuccess, account }: AccountFormModalProps): JSX.Element {
   const isEdit = !!account
 
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
@@ -134,14 +135,22 @@ export function AccountFormModal({ open, onClose, onSuccess, account }: AccountF
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Tipo de cuenta
               </label>
-              <select
-                {...register('type')}
-                className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-              >
-                {ACCOUNT_TYPES.map(t => (
-                  <option key={t} value={t} className="bg-[#121418]">{TYPE_LABELS[t]}</option>
-                ))}
-              </select>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACCOUNT_TYPES.map(t => (
+                        <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {/* Initial Balance */}

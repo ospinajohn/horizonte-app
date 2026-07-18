@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import {
   AreaChart,
   Area,
@@ -50,7 +51,7 @@ type AssetFormData = z.infer<typeof assetSchema>
 function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssetFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
     defaultValues: { type: 'OTHER', acquisitionValue: 0 }
   })
@@ -93,11 +94,22 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
               </div>
               <div>
                 <label className={labelCls}>Tipo</label>
-                <select {...register('type')} className={inputCls}>
-                  {(Object.keys(ASSET_TYPE_LABELS) as AssetType[]).map((t) => (
-                    <option key={t} value={t}>{ASSET_TYPE_LABELS[t]}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ASSET_TYPE_LABELS) as AssetType[]).map((t) => (
+                          <SelectItem key={t} value={t}>{ASSET_TYPE_LABELS[t]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

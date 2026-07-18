@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Plus, Trash2 } from 'lucide-react'
@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { useCategories } from '../../hooks/useCategories'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select'
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns'
 
 const budgetSchema = z.object({
@@ -132,14 +133,22 @@ export function BudgetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.E
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
                     Período
                   </label>
-                  <select
-                    {...register('period')}
-                    className="w-full h-12 bg-black/20 border border-white/10 rounded-2xl px-4 text-sm text-white outline-none focus:border-[#10B981]/50 transition-colors"
-                  >
-                    <option value="MONTHLY">Mensual</option>
-                    <option value="BIWEEKLY">Quincenal</option>
-                    <option value="WEEKLY">Semanal</option>
-                  </select>
+                  <Controller
+                    name="period"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="h-12 bg-black/20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MONTHLY">Mensual</SelectItem>
+                          <SelectItem value="BIWEEKLY">Quincenal</SelectItem>
+                          <SelectItem value="WEEKLY">Semanal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -183,21 +192,31 @@ export function BudgetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.E
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex items-start gap-3">
                     <div className="flex-1">
-                      <select
-                        {...register(`categories.${index}.categoryId`, { valueAsNumber: true })}
-                        className="w-full h-12 bg-black/20 border border-white/10 rounded-2xl px-4 text-sm text-white outline-none focus:border-[#10B981]/50 transition-colors"
-                      >
-                        <option value={0} disabled>Seleccionar...</option>
-                        {categories.map((cat) => (
-                          <option
-                            key={cat.id}
-                            value={cat.id}
-                            disabled={selectedCategoryIds.includes(cat.id) && selectedCategoryIds[index] !== cat.id}
+                      <Controller
+                        name={`categories.${index}.categoryId`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            value={field.value ? String(field.value) : ''}
+                            onValueChange={(v) => field.onChange(Number(v))}
                           >
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
+                            <SelectTrigger className="h-12 bg-black/20">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem
+                                  key={cat.id}
+                                  value={String(cat.id)}
+                                  disabled={selectedCategoryIds.includes(cat.id) && selectedCategoryIds[index] !== cat.id}
+                                >
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                       {errors.categories?.[index]?.categoryId && (
                         <p className="mt-1 text-xs text-rose-500">{errors.categories[index]?.categoryId?.message}</p>
                       )}

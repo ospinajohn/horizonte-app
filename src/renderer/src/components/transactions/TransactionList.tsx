@@ -5,6 +5,7 @@ import { startOfMonth, endOfMonth } from 'date-fns'
 import { ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCategories } from '@/hooks/useCategories'
@@ -82,28 +83,36 @@ export function TransactionList({ onEdit, onDelete }: TransactionListProps): JSX
         </div>
 
         {/* Account filter */}
-        <select
-          value={accountFilter ?? ''}
-          onChange={e => { setAccountFilter(e.target.value ? Number(e.target.value) : undefined); setPage(1) }}
-          className="h-9 rounded-2xl border border-white/5 bg-white/5 px-3 text-xs text-gray-300 focus:outline-none focus:border-[#10B981]/50"
+        <Select
+          value={accountFilter != null ? String(accountFilter) : 'ALL'}
+          onValueChange={(v) => { setAccountFilter(v === 'ALL' ? undefined : Number(v)); setPage(1) }}
         >
-          <option value="" className="bg-[#121418]">Todas las cuentas</option>
-          {accounts.map(a => (
-            <option key={a.id} value={a.id} className="bg-[#121418]">{a.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="w-auto h-9 px-3 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todas las cuentas</SelectItem>
+            {accounts.map(a => (
+              <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Category filter */}
-        <select
-          value={categoryFilter ?? ''}
-          onChange={e => { setCategoryFilter(e.target.value ? Number(e.target.value) : undefined); setPage(1) }}
-          className="h-9 rounded-2xl border border-white/5 bg-white/5 px-3 text-xs text-gray-300 focus:outline-none focus:border-[#10B981]/50"
+        <Select
+          value={categoryFilter != null ? String(categoryFilter) : 'ALL'}
+          onValueChange={(v) => { setCategoryFilter(v === 'ALL' ? undefined : Number(v)); setPage(1) }}
         >
-          <option value="" className="bg-[#121418]">Todas las categorías</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id} className="bg-[#121418]">{c.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="w-auto h-9 px-3 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todas las categorías</SelectItem>
+            {categories.map(c => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Content */}

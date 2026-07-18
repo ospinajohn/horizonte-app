@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useAccounts } from '@/hooks/useAccounts'
 import type { SavingsGoal } from '../../../../shared/types'
@@ -53,7 +54,7 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
   const [error, setError] = useState<string | null>(null)
   const { accounts } = useAccounts()
 
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } =
     useForm<GoalFormValues>({
       resolver: zodResolver(goalSchema),
       defaultValues: {
@@ -131,7 +132,7 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[90vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl flex flex-col focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[90vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl overflow-hidden flex flex-col focus:outline-none">
           {/* Header */}
           <div className="flex items-center justify-between p-8 border-b border-white/5 shrink-0">
             <div>
@@ -218,14 +219,22 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Prioridad
                 </label>
-                <select
-                  {...register('priority')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="LOW" className="bg-[#121418]">Baja</option>
-                  <option value="MEDIUM" className="bg-[#121418]">Media</option>
-                  <option value="HIGH" className="bg-[#121418]">Alta</option>
-                </select>
+                <Controller
+                  name="priority"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Baja</SelectItem>
+                        <SelectItem value="MEDIUM">Media</SelectItem>
+                        <SelectItem value="HIGH">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -250,17 +259,28 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Cuenta vinculada (opcional)
                 </label>
-                <select
-                  {...register('accountId')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="" className="bg-[#121418]">Sin cuenta</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id} className="bg-[#121418]">
-                      {acc.name}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="accountId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value != null ? String(field.value) : 'NONE'}
+                      onValueChange={(v) => field.onChange(v === 'NONE' ? undefined : Number(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Sin cuenta</SelectItem>
+                        {accounts.map((acc) => (
+                          <SelectItem key={acc.id} value={String(acc.id)}>
+                            {acc.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 

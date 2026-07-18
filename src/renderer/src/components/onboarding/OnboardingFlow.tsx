@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -276,15 +277,23 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Moneda
                 </label>
-                <select
-                  {...step2Form.register('currency')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="COP" className="bg-[#121418]">🇨🇴 Peso Colombiano (COP)</option>
-                  <option value="USD" className="bg-[#121418]">🇺🇸 Dólar (USD)</option>
-                  <option value="EUR" className="bg-[#121418]">🇪🇺 Euro (EUR)</option>
-                  <option value="MXN" className="bg-[#121418]">🇲🇽 Peso Mexicano (MXN)</option>
-                </select>
+                <Controller
+                  name="currency"
+                  control={step2Form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="COP">🇨🇴 Peso Colombiano (COP)</SelectItem>
+                        <SelectItem value="USD">🇺🇸 Dólar (USD)</SelectItem>
+                        <SelectItem value="EUR">🇪🇺 Euro (EUR)</SelectItem>
+                        <SelectItem value="MXN">🇲🇽 Peso Mexicano (MXN)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -369,18 +378,26 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Tipo
                   </label>
-                  <select
-                    {...step3Form.register('accountType')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="BANCO" className="bg-[#121418]">Banco</option>
-                    <option value="EFECTIVO" className="bg-[#121418]">Efectivo</option>
-                    <option value="NEQUI" className="bg-[#121418]">Nequi</option>
-                    <option value="DAVIPLATA" className="bg-[#121418]">Daviplata</option>
-                    <option value="TARJETA" className="bg-[#121418]">Tarjeta</option>
-                    <option value="AHORROS" className="bg-[#121418]">Ahorros</option>
-                    <option value="INVERSION" className="bg-[#121418]">Inversión</option>
-                  </select>
+                  <Controller
+                    name="accountType"
+                    control={step3Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BANCO">Banco</SelectItem>
+                          <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                          <SelectItem value="NEQUI">Nequi</SelectItem>
+                          <SelectItem value="DAVIPLATA">Daviplata</SelectItem>
+                          <SelectItem value="TARJETA">Tarjeta</SelectItem>
+                          <SelectItem value="AHORROS">Ahorros</SelectItem>
+                          <SelectItem value="INVERSION">Inversión</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
@@ -464,26 +481,42 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Tipo
                   </label>
-                  <select
-                    {...step4Form.register('incomeType')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="Salario" className="bg-[#121418]">Salario</option>
-                    <option value="Freelance" className="bg-[#121418]">Freelance</option>
-                    <option value="Otro" className="bg-[#121418]">Otro</option>
-                  </select>
+                  <Controller
+                    name="incomeType"
+                    control={step4Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Salario">Salario</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                          <SelectItem value="Otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Recurrencia
                   </label>
-                  <select
-                    {...step4Form.register('recurrence')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="MONTHLY" className="bg-[#121418]">Mensual</option>
-                    <option value="BIWEEKLY" className="bg-[#121418]">Quincenal</option>
-                  </select>
+                  <Controller
+                    name="recurrence"
+                    control={step4Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MONTHLY">Mensual</SelectItem>
+                          <SelectItem value="BIWEEKLY">Quincenal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 

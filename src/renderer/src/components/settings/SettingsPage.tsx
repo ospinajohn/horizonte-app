@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw, Download, RotateCcw } from 'lucide-react'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { AppConfig } from '../../../../shared/types'
 
 type ConfigDraft = {
@@ -189,15 +190,19 @@ export function SettingsPage(): JSX.Element {
           <div className="space-y-5">
             <label className="block space-y-2">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Moneda</span>
-              <select
+              <Select
                 value={draft.currency}
-                onChange={(e) => setDraft((d) => ({ ...d, currency: e.target.value }))}
-                className="w-full bg-[#0F1115] border border-white/10 rounded-2xl px-5 py-3 text-sm text-white focus:outline-none"
+                onValueChange={(v) => setDraft((d) => ({ ...d, currency: v }))}
               >
-                {CURRENCIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full bg-[#0F1115] px-5 py-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <div className="grid grid-cols-2 gap-4">
@@ -283,15 +288,19 @@ export function SettingsPage(): JSX.Element {
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                 Anticipación de alertas
               </span>
-              <select
-                value={draft.alertDaysAhead}
-                onChange={(e) => setDraft((d) => ({ ...d, alertDaysAhead: Number(e.target.value) }))}
-                className="w-full bg-[#0F1115] border border-white/10 rounded-2xl px-5 py-3 text-sm text-white focus:outline-none"
+              <Select
+                value={String(draft.alertDaysAhead)}
+                onValueChange={(v) => setDraft((d) => ({ ...d, alertDaysAhead: Number(v) }))}
               >
-                {ALERT_DAYS.map((a) => (
-                  <option key={a.value} value={a.value}>{a.label}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full bg-[#0F1115] px-5 py-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALERT_DAYS.map((a) => (
+                    <SelectItem key={a.value} value={String(a.value)}>{a.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <p className="text-[10px] text-gray-600">

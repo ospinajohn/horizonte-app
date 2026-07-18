@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Plus, Repeat, X, Edit2, Trash2, AlertTriangle } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { Subscription, SubscriptionCategory } from '../../../../shared/types'
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ function SubscriptionFormModal({
   const [saving, setSaving] = useState(false)
   const isEdit = !!editSub
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<SubFormData>({
+  const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<SubFormData>({
     resolver: zodResolver(subscriptionSchema),
     defaultValues: editSub
       ? {
@@ -111,8 +112,8 @@ function SubscriptionFormModal({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[#121418] border border-white/5 rounded-[28px] p-8 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
-          <div className="flex items-center justify-between mb-6">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[85vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-8 pb-0 shrink-0">
             <Dialog.Title className="text-xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
               {isEdit ? 'Editar suscripción' : 'Nueva Suscripción'}
             </Dialog.Title>
@@ -121,6 +122,7 @@ function SubscriptionFormModal({
             </Dialog.Close>
           </div>
 
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6">
           {/* Presets */}
           {!isEdit && (
             <div className="mb-5">
@@ -162,11 +164,22 @@ function SubscriptionFormModal({
 
             <div>
               <label className={labelCls}>Categoría</label>
-              <select {...register('category')} className={inputCls}>
-                {(Object.keys(CAT_LABELS) as SubscriptionCategory[]).map((c) => (
-                  <option key={c} value={c}>{CAT_LABELS[c]}</option>
-                ))}
-              </select>
+              <Controller
+                name="category"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(CAT_LABELS) as SubscriptionCategory[]).map((c) => (
+                        <SelectItem key={c} value={c}>{CAT_LABELS[c]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             <div>
@@ -186,6 +199,7 @@ function SubscriptionFormModal({
               </button>
             </div>
           </form>
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

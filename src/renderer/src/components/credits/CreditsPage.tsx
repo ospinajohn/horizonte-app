@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { Credit, AmortizationRow } from '../../../../shared/types'
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreditFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<CreditFormData>({
     resolver: zodResolver(creditSchema),
     defaultValues: { paidInstallments: 0, status: 'ACTIVE', monthlyPayment: 0 }
   })
@@ -79,8 +80,8 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[#121418] border border-white/5 rounded-[28px] p-8 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
-          <div className="flex items-center justify-between mb-6">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[85vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-8 pb-0 shrink-0">
             <Dialog.Title className="text-xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
               Nuevo Crédito
             </Dialog.Title>
@@ -89,7 +90,7 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
             </Dialog.Close>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6 space-y-4">
             <div>
               <label className={labelCls}>Entidad / Banco</label>
               <input {...register('entityName')} placeholder="Bancolombia, Davivienda..." className={inputCls} />
@@ -146,11 +147,22 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
               </div>
               <div>
                 <label className={labelCls}>Estado</label>
-                <select {...register('status')} className={inputCls}>
-                  <option value="ACTIVE">Activo</option>
-                  <option value="PAID">Pagado</option>
-                  <option value="OVERDUE">En mora</option>
-                </select>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Activo</SelectItem>
+                        <SelectItem value="PAID">Pagado</SelectItem>
+                        <SelectItem value="OVERDUE">En mora</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 

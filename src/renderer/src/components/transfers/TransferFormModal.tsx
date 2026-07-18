@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
 import type { CreateTransferDto } from '../../../../shared/types'
 
@@ -32,7 +33,7 @@ type FormValues = z.infer<typeof schema>
 export function TransferFormModal({ open, onClose, onSuccess }: TransferFormModalProps): JSX.Element {
   const { accounts } = useAccounts()
 
-  const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       fromAccountId: undefined,
@@ -107,15 +108,25 @@ export function TransferFormModal({ open, onClose, onSuccess }: TransferFormModa
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Origen
                 </label>
-                <select
-                  {...register('fromAccountId')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="" className="bg-[#121418]">Seleccionar</option>
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id} className="bg-[#121418]">{a.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="fromAccountId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map(a => (
+                          <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.fromAccountId && <p className="text-xs text-rose-400 mt-1">{errors.fromAccountId.message}</p>}
               </div>
 
@@ -129,17 +140,27 @@ export function TransferFormModal({ open, onClose, onSuccess }: TransferFormModa
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Destino
                 </label>
-                <select
-                  {...register('toAccountId')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="" className="bg-[#121418]">Seleccionar</option>
-                  {accounts
-                    .filter(a => a.id !== Number(fromAccountId))
-                    .map(a => (
-                      <option key={a.id} value={a.id} className="bg-[#121418]">{a.name}</option>
-                    ))}
-                </select>
+                <Controller
+                  name="toAccountId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts
+                          .filter(a => a.id !== Number(fromAccountId))
+                          .map(a => (
+                            <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.toAccountId && <p className="text-xs text-rose-400 mt-1">{errors.toAccountId.message}</p>}
               </div>
             </div>
