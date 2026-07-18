@@ -12,10 +12,18 @@ import { GoalsCard } from './GoalsCard'
 import { InsightsRow } from './InsightsRow'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboard } from '@/hooks/useDashboard'
+import { TransactionFormModal } from '../transactions/TransactionFormModal'
 
 export function DashboardPage(): JSX.Element {
-  const { data, loading } = useDashboard()
+  const { data, loading, refetch } = useDashboard()
   const navigate = useNavigate()
+  const [quickFormOpen, setQuickFormOpen] = useState(false)
+  const [quickFormMode, setQuickFormMode] = useState<'income' | 'expense'>('income')
+
+  const openQuickForm = (mode: 'income' | 'expense'): void => {
+    setQuickFormMode(mode)
+    setQuickFormOpen(true)
+  }
 
   // ── Datos complementarios que no vienen del DashboardService ─────────────
   const [healthScore, setHealthScore] = useState<number | null>(null)
@@ -123,13 +131,15 @@ export function DashboardPage(): JSX.Element {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 relative z-10">
-          <button 
+          <button
+            onClick={() => openQuickForm('income')}
             className="px-6 py-3.5 bg-gradient-to-r from-[#10B981]/10 to-[#10B981]/5 text-[#10B981] border border-[#10B981]/20 rounded-2xl text-sm font-bold hover:bg-[#10B981] hover:text-[#0A0A0A] hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
           >
             <span className="text-lg leading-none">+</span> Ingreso Rápido
           </button>
-          
-          <button 
+
+          <button
+            onClick={() => openQuickForm('expense')}
             className="px-6 py-3.5 bg-gradient-to-r from-rose-500/10 to-rose-500/5 text-rose-500 border border-rose-500/20 rounded-2xl text-sm font-bold hover:bg-rose-500 hover:text-white hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(244,63,94,0.1)]"
           >
             <span className="text-lg leading-none">-</span> Gasto Rápido
@@ -233,6 +243,17 @@ export function DashboardPage(): JSX.Element {
           </>
         )}
       </section>
+
+      <TransactionFormModal
+        open={quickFormOpen}
+        onClose={() => setQuickFormOpen(false)}
+        onSuccess={() => {
+          setQuickFormOpen(false)
+          refetch()
+          loadSupplementalData()
+        }}
+        mode={quickFormMode}
+      />
     </div>
   )
 }
