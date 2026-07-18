@@ -8,12 +8,14 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
-  TooltipProps,
 } from "recharts";
-import {
-  NameType,
-  ValueType,
-} from "recharts/types/component/DefaultTooltipContent";
+import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ dataKey: string; value: ValueType; name: NameType }>;
+  label?: string;
+}
 
 interface MonthData {
   label: string;
@@ -29,7 +31,7 @@ const CustomTooltip = ({
   active,
   payload,
   label,
-}: TooltipProps<ValueType, NameType>) => {
+}: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const income =
       (payload.find((p) => p.dataKey === "income")?.value as number) || 0;
