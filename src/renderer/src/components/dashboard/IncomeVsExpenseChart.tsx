@@ -23,14 +23,14 @@ export function IncomeVsExpenseChart({ data }: IncomeVsExpenseChartProps): JSX.E
   const chartW = W - PAD.left - PAD.right
   const chartH = H - PAD.top - PAD.bottom
   const barGroupWidth = chartW / Math.max(data.length, 1)
-  const barWidth = Math.min(barGroupWidth * 0.28, 36)
+  const barWidth = Math.min(barGroupWidth * 0.38, 48)
   const barGap = 4
 
   return (
-    <div className="col-span-12 lg:col-span-9 bg-[#121418] border border-white/5 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.2)] p-10 flex flex-col">
+    <div className="col-span-12 lg:col-span-9 bg-[#121418] border border-white/5 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.2)] p-8 flex flex-col">
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-10">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold">
             Ingresos vs Gastos
@@ -54,7 +54,7 @@ export function IncomeVsExpenseChart({ data }: IncomeVsExpenseChartProps): JSX.E
       </div>
 
       {/* Chart */}
-      <div className="flex-1 min-h-[260px] relative bg-black/20 rounded-[32px] border border-white/5 overflow-hidden px-6 pt-6 pb-2">
+      <div className="flex-1 min-h-[220px] relative bg-black/20 rounded-[32px] border border-white/5 overflow-hidden px-6 pt-6 pb-2">
         {!hasData ? (
           <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-center">
             <p className="text-sm text-gray-500 mb-1">Sin datos suficientes</p>
@@ -121,6 +121,44 @@ export function IncomeVsExpenseChart({ data }: IncomeVsExpenseChartProps): JSX.E
                         filter: isHovered ? 'drop-shadow(0 0 8px rgba(244,63,94,0.6))' : 'none'
                       }}
                     />
+
+                    {/* Income value label */}
+                    {d.income > 0 && (
+                      <text
+                        x={groupX - barWidth / 2 - barGap / 2}
+                        y={PAD.top + chartH - incomeH - 8}
+                        textAnchor="middle"
+                        className="font-['JetBrains_Mono',monospace] font-bold"
+                        fontSize="9"
+                        fill={isHovered ? '#10B981' : '#6B7280'}
+                        style={{ transition: 'fill 0.3s' }}
+                      >
+                        {d.income >= 1000000
+                          ? `$${(d.income / 1000000).toFixed(1)}M`
+                          : d.income >= 1000
+                            ? `$${Math.round(d.income / 1000)}K`
+                            : `$${d.income}`}
+                      </text>
+                    )}
+
+                    {/* Expense value label */}
+                    {d.expense > 0 && (
+                      <text
+                        x={groupX + barGap / 2 + barWidth / 2}
+                        y={PAD.top + chartH - expenseH - 8}
+                        textAnchor="middle"
+                        className="font-['JetBrains_Mono',monospace] font-bold"
+                        fontSize="9"
+                        fill={isHovered ? '#F43F5E' : '#6B7280'}
+                        style={{ transition: 'fill 0.3s' }}
+                      >
+                        {d.expense >= 1000000
+                          ? `$${(d.expense / 1000000).toFixed(1)}M`
+                          : d.expense >= 1000
+                            ? `$${Math.round(d.expense / 1000)}K`
+                            : `$${d.expense}`}
+                      </text>
+                    )}
 
                     {/* Month label */}
                     <text
