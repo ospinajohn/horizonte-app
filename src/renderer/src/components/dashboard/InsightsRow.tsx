@@ -1,18 +1,16 @@
 import { formatCurrency, formatPercent } from '@/lib/utils'
-import { TrendingUp, ShoppingCart, CalendarClock } from 'lucide-react'
+import { TrendingUp, ShoppingCart } from 'lucide-react'
 
 interface InsightsRowProps {
   monthIncome: number
   monthExpense: number
   topCategory: { name: string; amount: number } | null
-  daysUntilPayday: number
 }
 
 export function InsightsRow({
   monthIncome,
   monthExpense,
-  topCategory,
-  daysUntilPayday
+  topCategory
 }: InsightsRowProps): JSX.Element {
   const savingsRate = monthIncome > 0
     ? ((monthIncome - monthExpense) / monthIncome) * 100
@@ -21,12 +19,6 @@ export function InsightsRow({
   const savingsColor = savingsRate >= 20
     ? 'text-[#10B981]'
     : savingsRate >= 0
-      ? 'text-amber-400'
-      : 'text-rose-500'
-
-  const paydayColor = daysUntilPayday > 7
-    ? 'text-[#10B981]'
-    : daysUntilPayday > 0
       ? 'text-amber-400'
       : 'text-rose-500'
 
@@ -51,7 +43,7 @@ export function InsightsRow({
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
               Tasa de Ahorro
             </p>
-            <p className={`text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold ${savingsColor}`}>
+            <p className={`text-3xl font-['Plus_Jakarta_Sans',sans-serif] font-bold ${savingsColor}`}>
               {formatPercent(savingsRate, 1)}
             </p>
           </div>
@@ -70,33 +62,16 @@ export function InsightsRow({
             </p>
             {topCategory ? (
               <div>
-                <p className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-rose-500">
+                <p className="text-3xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-rose-500">
                   {formatCurrency(topCategory.amount)}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{topCategory.name}</p>
               </div>
             ) : (
-              <p className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-gray-600">
+              <p className="text-3xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-gray-600">
                 —
               </p>
             )}
-          </div>
-        </div>
-
-        <div className="h-px bg-white/5" />
-
-        {/* Días al Pago */}
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-            <CalendarClock size={16} className="text-blue-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
-              Días al Pago
-            </p>
-            <p className={`text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold ${paydayColor}`}>
-              {daysUntilPayday}
-            </p>
           </div>
         </div>
       </div>
