@@ -93,39 +93,56 @@ export function DashboardPage(): JSX.Element {
     }
   }) ?? []
 
+  const hour = new Date().getHours()
+  let greeting = 'Buenas noches'
+  if (hour >= 5 && hour < 12) greeting = 'Buenos días'
+  else if (hour >= 12 && hour < 19) greeting = 'Buenas tardes'
+
+  const currentDateFormatted = format(new Date(), "EEEE, d 'de' MMMM", { locale: es })
+  const capitalizedDate = currentDateFormatted.charAt(0).toUpperCase() + currentDateFormatted.slice(1)
+
   return (
     <div className="max-w-[1600px] mx-auto p-12 space-y-12">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="flex justify-between items-end">
-        <div>
-          <p className="text-[10px] font-bold text-[#10B981] uppercase tracking-[0.4em] mb-3">
-            Horizonte v1.0 // Sistema Activo
+      <header className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-[#0A0A0A]/50 p-8 rounded-[32px] border border-white/5 relative overflow-hidden backdrop-blur-md">
+        {/* Efecto Glow de fondo */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#10B981]/5 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="relative z-10">
+          <p className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            {capitalizedDate}
           </p>
-          <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold tracking-tight">
-            Financial Command Center
+          <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold tracking-tight text-white flex items-center gap-3">
+            {greeting}, John <span className="text-3xl origin-bottom-right hover:animate-ping cursor-default">👋</span>
           </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Resumen general de tu actividad financiera
+          </p>
         </div>
 
-        <div className="flex items-center gap-10">
-          <div className="text-right">
-            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">
-              Estado
-            </p>
-            <div className="flex items-center gap-2 justify-end">
-              <span className="text-sm font-['JetBrains_Mono',monospace] font-bold text-gray-300">
-                Online
-              </span>
-              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 relative z-10">
+          <button 
+            className="px-6 py-3.5 bg-gradient-to-r from-[#10B981]/10 to-[#10B981]/5 text-[#10B981] border border-[#10B981]/20 rounded-2xl text-sm font-bold hover:bg-[#10B981] hover:text-[#0A0A0A] hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+          >
+            <span className="text-lg leading-none">+</span> Ingreso Rápido
+          </button>
+          
+          <button 
+            className="px-6 py-3.5 bg-gradient-to-r from-rose-500/10 to-rose-500/5 text-rose-500 border border-rose-500/20 rounded-2xl text-sm font-bold hover:bg-rose-500 hover:text-white hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(244,63,94,0.1)]"
+          >
+            <span className="text-lg leading-none">-</span> Gasto Rápido
+          </button>
+
+          <div className="w-[1px] h-8 bg-white/10 mx-2 hidden sm:block"></div>
 
           <button
             onClick={() => navigate('/reportes')}
-            className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2"
+            className="px-4 py-2 bg-white/5 rounded-xl text-xs text-gray-500 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1.5"
           >
-            <FileDown size={14} />
-            Exportar Reporte
+            <FileDown size={13} />
+            Exportar
           </button>
         </div>
       </header>
