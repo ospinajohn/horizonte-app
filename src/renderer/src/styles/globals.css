@@ -75,6 +75,48 @@
     -moz-osx-font-smoothing: grayscale;
     /* Evitar selección de texto en elementos UI */
     user-select: none;
+    /* Hace que los controles nativos (calendario, spinners, checkboxes)
+       se rendericen en su variante oscura en vez del tema claro del SO */
+    color-scheme: dark;
+  }
+
+  /* ── Inputs numéricos ────────────────────────────────────────────────── */
+  /* Oculta las flechas nativas (spin buttons) para un look limpio y
+     consistente con el resto de la UI */
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* ── Inputs de fecha / hora ───────────────────────────────────────────── */
+  /* El ícono nativo del calendario no se puede re-skinear (es un widget del
+     SO), así que se hace invisible y se estira sobre todo el campo: el click
+     en cualquier parte del input abre el date picker. El ícono que se ve
+     realmente es un <Calendar> de lucide inyectado por el componente Input,
+     con la misma estética (color, tamaño) que el chevron de <Select>. */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator,
+  input[type='datetime-local']::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    position: relative;
+    color-scheme: dark;
   }
 
   /* Permitir selección en contenido de datos */
