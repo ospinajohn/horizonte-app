@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
-import { Input } from '@/components/ui/input'
+import { Input, DatePicker } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
@@ -213,7 +213,16 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Fecha límite (opcional)
                 </label>
-                <Input type="date" {...register('deadline')} />
+                <Controller
+                  name="deadline"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                      onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                    />
+                  )}
+                />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">

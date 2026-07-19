@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/input'
 import {
   AreaChart,
   Area,
@@ -125,7 +126,16 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
             </div>
             <div>
               <label className={labelCls}>Fecha adquisición</label>
-              <input {...register('acquisitionDate')} type="date" className={inputCls} />
+              <Controller
+                name="acquisitionDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
             </div>
             <div>
               <label className={labelCls}>Descripción</label>

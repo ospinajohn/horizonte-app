@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale'
 import { Plus, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/input'
 import type { Credit, AmortizationRow } from '../../../../shared/types'
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
@@ -142,7 +143,16 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Fecha inicio</label>
-                <input {...register('startDate')} type="date" className={inputCls} />
+                <Controller
+                  name="startDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                      onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                    />
+                  )}
+                />
                 {errors.startDate && <p className="text-rose-400 text-xs mt-1">{errors.startDate.message}</p>}
               </div>
               <div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, CreditCard as CreditCardIcon, X, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
+import { DatePicker } from '@/components/ui/input'
 import type { CreditCard, CreditCardPurchase } from '../../../../shared/types'
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ function CardFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
 function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: () => void }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<PurchaseFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: { installments: 1, isAdvance: false }
   })
@@ -176,7 +177,16 @@ function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: (
             </div>
             <div>
               <label className={labelCls}>Fecha</label>
-              <input {...register('date')} type="date" className={inputCls} />
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
               {errors.date && <p className="text-rose-400 text-xs mt-1">{errors.date.message}</p>}
             </div>
             <label className="flex items-center gap-2 cursor-pointer">

@@ -6,7 +6,7 @@ import { X, Plus, Trash2 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { useCategories } from '../../hooks/useCategories'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
+import { Input, DatePicker } from '../ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select'
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns'
 
@@ -157,13 +157,31 @@ export function BudgetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.E
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
                     Fecha Inicio
                   </label>
-                  <Input type="date" {...register('startDate')} />
+                  <Controller
+                    name="startDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                        onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                      />
+                    )}
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
                     Fecha Fin
                   </label>
-                  <Input type="date" {...register('endDate')} />
+                  <Controller
+                    name="endDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                        onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                      />
+                    )}
+                  />
                 </div>
               </div>
             </div>

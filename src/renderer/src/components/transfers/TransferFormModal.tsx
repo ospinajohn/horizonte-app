@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { X, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn, formatCurrency } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
+import { Input, DatePicker } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
 import type { CreateTransferDto } from '../../../../shared/types'
@@ -192,7 +192,16 @@ export function TransferFormModal({ open, onClose, onSuccess }: TransferFormModa
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Fecha
               </label>
-              <Input {...register('date')} type="date" />
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
             </div>
 
             {/* Description */}
