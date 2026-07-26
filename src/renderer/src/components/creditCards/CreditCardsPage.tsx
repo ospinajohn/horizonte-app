@@ -9,7 +9,7 @@ import { Plus, CreditCard as CreditCardIcon, X, ShoppingBag, ChevronDown, Chevro
 import { formatCurrency, cn } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import type { CreditCard, CreditCardPurchase, CardIntelligence, CardRecommendation } from '../../../../shared/types'
+import type { CreditCard, CreditCardPurchase, CardIntelligence, CardRecommendation, CardPurchaseAnalytics } from '../../../../shared/types'
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const BENEFIT_TYPE_OPTIONS = [
@@ -194,13 +194,34 @@ function CardFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
 }
 
 // ── Purchase Form Modal ────────────────────────────────────────────────────────
-function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: () => void }): JSX.Element {
+function PurchaseFormModal({ cardId, cardName, onSuccess }: {
+  cardId: number
+  cardName: string
+  onSuccess: () => void
+}): JSX.Element {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<PurchaseFormData>({
+  const [betterCard, setBetterCard] = useState<CardRecommendation | null>(null)
+  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: { installments: 1, isAdvance: false }
   })
+
+  const amount = watch('amount')
+
+  useEffect(() => {
+    if (!open || !amount || amount <= 0) { setBetterCard(null); return }
+
+    const timeout = setTimeout(async () => {
+      const result = await window.api.creditCards.recommendForPurchase(amount)
+      if (result.success && result.data) {
+        const top = result.data.find((r: CardRecommendation) => r.eligible)
+        setBetterCard(top && top.cardId !== cardId ? top : null)
+      }
+    }, 400)
+
+    return () => clearTimeout(timeout)
+  }, [amount, open, cardId])
 
   const onSubmit = async (data: PurchaseFormData): Promise<void> => {
     setSaving(true)
@@ -213,7 +234,7 @@ function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: (
       isAdvance: data.isAdvance
     })
     setSaving(false)
-    if (result.success) { reset(); setOpen(false); onSuccess() }
+    if (result.success) { reset(); setBetterCard(null); setOpen(false); onSuccess() }
   }
 
   const inputCls = 'w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#10B981]/50'
@@ -252,6 +273,14 @@ function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: (
                 <input {...register('installments')} type="number" min="1" max="36" placeholder="1" className={inputCls} />
               </div>
             </div>
+            {betterCard && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3">
+                <p className="text-xs text-blue-300">
+                  💡 ¿Sabías que <span className="font-bold">{betterCard.name}</span> podría convenirte más para esta compra que {cardName}?
+                </p>
+                {betterCard.reasons[0] && <p className="text-[11px] text-blue-400/80 mt-1">{betterCard.reasons[0]}</p>}
+              </div>
+            )}
             <div>
               <label className={labelCls}>Fecha</label>
               <Controller
@@ -373,7 +402,7 @@ function CardVisual({ card, intelligence, onDelete, onRefresh }: {
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <PurchaseFormModal cardId={card.id} onSuccess={onRefresh} />
+        <PurchaseFormModal cardId={card.id} cardName={card.name} onSuccess={onRefresh} />
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowPurchases((v) => !v)}
@@ -454,6 +483,36 @@ function OpportunityCenter({ intelligence }: { intelligence: CardIntelligence[] 
               </p>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Análisis histórico ────────────────────────────────────────────────────────────
+function AnalyticsSummary({ analytics }: { analytics: CardPurchaseAnalytics }): JSX.Element | null {
+  if (analytics.totalPurchases === 0) return null
+
+  return (
+    <div className="bg-[#121418] border border-white/5 rounded-[28px] p-8 mb-6">
+      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">
+        Análisis histórico
+      </h3>
+      <p className="text-[11px] text-gray-600 mb-4">Compras de los últimos {analytics.periodMonths} meses</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Financiación promedio</p>
+          <p className="text-2xl font-bold text-white">{analytics.avgFinancingDays} días</p>
+        </div>
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Compras en buen momento</p>
+          <p className="text-2xl font-bold text-[#10B981]">{analytics.goodMomentPercent}%</p>
+          <p className="text-[11px] text-gray-600">{analytics.goodMomentPurchases} de {analytics.totalPurchases} compras</p>
+        </div>
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Compras cerca del corte</p>
+          <p className="text-2xl font-bold text-rose-400">{analytics.avoidMomentPurchases}</p>
+          <p className="text-[11px] text-gray-600">perdieron días de financiación</p>
         </div>
       </div>
     </div>
@@ -583,6 +642,7 @@ function PurchaseAssistantModal(): JSX.Element {
 export function CreditCardsPage(): JSX.Element {
   const [cards, setCards] = useState<CreditCard[]>([])
   const [intelligence, setIntelligence] = useState<CardIntelligence[]>([])
+  const [analytics, setAnalytics] = useState<CardPurchaseAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async (): Promise<void> => {
@@ -603,6 +663,11 @@ export function CreditCardsPage(): JSX.Element {
     const intelligenceResult = await window.api.creditCards.getAllIntelligence()
     if (intelligenceResult.success && intelligenceResult.data) {
       setIntelligence(intelligenceResult.data)
+    }
+
+    const analyticsResult = await window.api.creditCards.getPurchaseAnalytics()
+    if (analyticsResult.success && analyticsResult.data) {
+      setAnalytics(analyticsResult.data)
     }
 
     setLoading(false)
@@ -647,6 +712,7 @@ export function CreditCardsPage(): JSX.Element {
         ) : (
           <>
             {intelligence.length >= 1 && <OpportunityCenter intelligence={intelligence} />}
+            {analytics && <AnalyticsSummary analytics={analytics} />}
             {intelligence.length >= 2 && <CardComparator intelligence={intelligence} />}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {cards.map((card) => (

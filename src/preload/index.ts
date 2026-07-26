@@ -115,7 +115,8 @@ const creditCardsAPI = {
   getIntelligence: (id: number) => ipcRenderer.invoke('creditCards:getIntelligence', id),
   getAllIntelligence: () => ipcRenderer.invoke('creditCards:getAllIntelligence'),
   recommendForPurchase: (amount: number, categoryTag?: string) =>
-    ipcRenderer.invoke('creditCards:recommendForPurchase', amount, categoryTag)
+    ipcRenderer.invoke('creditCards:recommendForPurchase', amount, categoryTag),
+  getPurchaseAnalytics: (cardId?: number) => ipcRenderer.invoke('creditCards:getPurchaseAnalytics', cardId)
 }
 
 const patrimonyAPI = {

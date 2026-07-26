@@ -130,6 +130,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('creditCards:recommendForPurchase', (_e, amount: number, categoryTag?: string) =>
     CreditCardService.recommendForPurchase(amount, categoryTag)
   )
+  ipcMain.handle('creditCards:getPurchaseAnalytics', (_e, cardId?: number) =>
+    CreditCardService.getPurchaseAnalytics(cardId)
+  )
 
   // ── Patrimony ──────────────────────────────────────────────────────────────
   ipcMain.handle('patrimony:getData', () => PatrimonyService.getData())

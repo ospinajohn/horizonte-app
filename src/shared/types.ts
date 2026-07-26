@@ -468,6 +468,15 @@ export interface CardRecommendation {
   eligible: boolean
 }
 
+export interface CardPurchaseAnalytics {
+  periodMonths: number
+  totalPurchases: number
+  avgFinancingDays: number
+  goodMomentPurchases: number
+  avoidMomentPurchases: number
+  goodMomentPercent: number
+}
+
 export interface CreateCreditCardPurchaseDto {
   cardId: number
   description: string

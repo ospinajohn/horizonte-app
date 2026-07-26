@@ -10,6 +10,7 @@ import type {
   CardBenefitType,
   CardIntelligence,
   CardRecommendation,
+  CardPurchaseAnalytics,
   ApiResult
 } from '../../shared/types'
 
@@ -265,6 +266,52 @@ export const CreditCardService = {
       })
 
       return recommendations.sort((a, b) => b.score - a.score)
+    })
+  },
+
+  /**
+   * Analítica de uso estratégico: para cada compra de los últimos 3 meses,
+   * calcula el estado del ciclo en el momento exacto en que se hizo (usando
+   * el motor de ciclos sobre la fecha real de la compra, no el billingPeriod
+   * almacenado) y agrega cuántas se hicieron en buen momento vs. cerca del corte.
+   */
+  async getPurchaseAnalytics(cardId?: number): Promise<ApiResult<CardPurchaseAnalytics>> {
+    return wrapService(async () => {
+      const periodMonths = 3
+      const since = new Date()
+      since.setMonth(since.getMonth() - periodMonths)
+
+      const cards = await db().creditCard.findMany({
+        where: { isActive: true, ...(cardId ? { id: cardId } : {}) },
+        include: { purchases: { where: { date: { gte: since }, isAdvance: false } } }
+      })
+
+      let totalPurchases = 0
+      let financingDaysSum = 0
+      let goodMomentPurchases = 0
+      let avoidMomentPurchases = 0
+
+      for (const card of cards) {
+        for (const purchase of card.purchases) {
+          const statusAtPurchase = getCardStatus(card.cutDay, card.paymentDay, new Date(purchase.date))
+          totalPurchases += 1
+          financingDaysSum += statusAtPurchase.financingDaysIfPurchaseToday
+          if (statusAtPurchase.status === 'EXCELLENT' || statusAtPurchase.status === 'GOOD') {
+            goodMomentPurchases += 1
+          } else if (statusAtPurchase.status === 'AVOID') {
+            avoidMomentPurchases += 1
+          }
+        }
+      }
+
+      return {
+        periodMonths,
+        totalPurchases,
+        avgFinancingDays: totalPurchases > 0 ? Math.round(financingDaysSum / totalPurchases) : 0,
+        goodMomentPurchases,
+        avoidMomentPurchases,
+        goodMomentPercent: totalPurchases > 0 ? Math.round((goodMomentPurchases / totalPurchases) * 100) : 0
+      }
     })
   }
 }
