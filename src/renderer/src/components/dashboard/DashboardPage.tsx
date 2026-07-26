@@ -10,6 +10,8 @@ import { HealthGauge } from './HealthGauge'
 import { DecisionLog } from './DecisionLog'
 import { GoalsCard } from './GoalsCard'
 import { InsightsRow } from './InsightsRow'
+import { CreditCardsInsightCard } from './CreditCardsInsightCard'
+import type { CardIntelligence } from '../../../../shared/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboard } from '@/hooks/useDashboard'
 import { TransactionFormModal } from '../transactions/TransactionFormModal'
@@ -30,6 +32,7 @@ export function DashboardPage(): JSX.Element {
   const [monthlyComparison, setMonthlyComparison] = useState<Array<{ label: string; income: number; expense: number }>>([])
   const [decisionLog, setDecisionLog] = useState<Array<{ level: 'SAFE' | 'WARN' | 'INFO' | 'ERR'; message: string }>>([])
   const [topCategory, setTopCategory] = useState<{ name: string; amount: number } | null>(null)
+  const [cardIntelligence, setCardIntelligence] = useState<CardIntelligence[]>([])
 
   const loadSupplementalData = useCallback(async () => {
     // 1. Score de salud financiera real
@@ -75,6 +78,13 @@ export function DashboardPage(): JSX.Element {
       if (result.success && result.data && result.data.length > 0) {
         const sorted = [...result.data].sort((a: any, b: any) => b.amount - a.amount)
         setTopCategory({ name: sorted[0].categoryName, amount: sorted[0].amount })
+      }
+    }).catch(() => {})
+
+    // 5. Inteligencia de tarjetas de crédito
+    window.api.creditCards.getAllIntelligence().then((result: any) => {
+      if (result.success && result.data) {
+        setCardIntelligence(result.data)
       }
     }).catch(() => {})
   }, [])
@@ -219,7 +229,7 @@ export function DashboardPage(): JSX.Element {
       </section>
 
       {/* ── Row 3: Metas + Insights ───────────────────────────────────── */}
-      <section className="grid grid-cols-12 gap-8 pb-20">
+      <section className="grid grid-cols-12 gap-8">
         {loading ? (
           <>
             <div className="col-span-12 lg:col-span-6">
@@ -241,6 +251,16 @@ export function DashboardPage(): JSX.Element {
               topCategory={topCategory}
             />
           </>
+        )}
+      </section>
+
+      {/* ── Row 4: Tarjetas de crédito ──────────────────────────────────── */}
+      <section className="grid grid-cols-12 gap-8 pb-20">
+        {!loading && cardIntelligence.length > 0 && (
+          <CreditCardsInsightCard
+            intelligence={cardIntelligence}
+            onViewAll={() => navigate('/tarjetas')}
+          />
         )}
       </section>
 
