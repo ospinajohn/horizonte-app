@@ -267,6 +267,11 @@ model CreditCard {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  franchise         String?                        // Visa, Mastercard, Amex...
+  cashbackPercent   Float?  @default(0)
+  benefitTypes      String?                        // JSON string[]: CASHBACK | MILES | POINTS | DISCOUNTS
+  benefitCategories String?                        // JSON string[]: tags libres, ej. "supermercados"
+
   purchases        CreditCardPurchase[]
 }
 

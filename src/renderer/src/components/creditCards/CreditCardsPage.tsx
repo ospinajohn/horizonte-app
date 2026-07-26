@@ -5,12 +5,34 @@ import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, CreditCard as CreditCardIcon, X, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, X, ShoppingBag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/input'
-import type { CreditCard, CreditCardPurchase } from '../../../../shared/types'
+import { Badge } from '@/components/ui/badge'
+import type { CreditCard, CreditCardPurchase, CardIntelligence, CardRecommendation } from '../../../../shared/types'
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
+const BENEFIT_TYPE_OPTIONS = [
+  { value: 'CASHBACK', label: 'Cashback' },
+  { value: 'MILES', label: 'Millas' },
+  { value: 'POINTS', label: 'Puntos' },
+  { value: 'DISCOUNTS', label: 'Descuentos' }
+] as const
+
+const STATUS_LABEL: Record<CardIntelligence['status'], string> = {
+  EXCELLENT: 'Excelente momento',
+  GOOD: 'Buen momento',
+  NORMAL: 'Momento normal',
+  AVOID: 'Evita comprar'
+}
+
+const STATUS_BADGE_CLASS: Record<CardIntelligence['status'], string> = {
+  EXCELLENT: 'bg-[#10B981]/20 text-[#10B981] border-transparent',
+  GOOD: 'bg-blue-500/20 text-blue-400 border-transparent',
+  NORMAL: 'bg-amber-500/20 text-amber-400 border-transparent',
+  AVOID: 'bg-rose-500/20 text-rose-400 border-transparent'
+}
+
 const cardSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   bank: z.string().min(1, 'Banco requerido'),
@@ -18,7 +40,11 @@ const cardSchema = z.object({
   cutDay: z.coerce.number().min(1).max(31),
   paymentDay: z.coerce.number().min(1).max(31),
   annualRate: z.coerce.number().min(0).max(200).default(0),
-  color: z.string().default('#6366f1')
+  color: z.string().default('#6366f1'),
+  franchise: z.string().optional(),
+  cashbackPercent: z.coerce.number().min(0).max(100).optional(),
+  benefitTypes: z.array(z.enum(['CASHBACK', 'MILES', 'POINTS', 'DISCOUNTS'])).optional(),
+  benefitCategories: z.string().optional()
 })
 
 const purchaseSchema = z.object({
@@ -36,14 +62,19 @@ type PurchaseFormData = z.infer<typeof purchaseSchema>
 function CardFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CardFormData>({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
-    defaultValues: { annualRate: 0, color: '#6366f1' }
+    defaultValues: { annualRate: 0, color: '#6366f1', benefitTypes: [] }
   })
 
   const onSubmit = async (data: CardFormData): Promise<void> => {
     setSaving(true)
-    const result = await window.api.creditCards.create(data)
+    const result = await window.api.creditCards.create({
+      ...data,
+      benefitCategories: data.benefitCategories
+        ? data.benefitCategories.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined
+    })
     setSaving(false)
     if (result.success) { reset(); setOpen(false); onSuccess() }
   }
@@ -99,9 +130,55 @@ function CardFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
                 <input {...register('annualRate')} type="number" step="0.1" placeholder="28" className={inputCls} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Color</label>
+                <input {...register('color')} type="color" className="w-full h-10 bg-black/30 border border-white/10 rounded-2xl cursor-pointer" />
+              </div>
+              <div>
+                <label className={labelCls}>Franquicia</label>
+                <input {...register('franchise')} placeholder="Visa, Mastercard..." className={inputCls} />
+              </div>
+            </div>
             <div>
-              <label className={labelCls}>Color</label>
-              <input {...register('color')} type="color" className="w-full h-10 bg-black/30 border border-white/10 rounded-2xl cursor-pointer" />
+              <label className={labelCls}>Cashback %</label>
+              <input {...register('cashbackPercent')} type="number" step="0.1" placeholder="1.5" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Tipo de beneficios</label>
+              <Controller
+                name="benefitTypes"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex flex-wrap gap-3">
+                    {BENEFIT_TYPE_OPTIONS.map((opt) => {
+                      const checked = (field.value ?? []).includes(opt.value)
+                      return (
+                        <label key={opt.value} className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="accent-[#10B981]"
+                            checked={checked}
+                            onChange={(e) => {
+                              const current = field.value ?? []
+                              field.onChange(
+                                e.target.checked
+                                  ? [...current, opt.value]
+                                  : current.filter((v) => v !== opt.value)
+                              )
+                            }}
+                          />
+                          {opt.label}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Categorías con beneficio (separadas por coma)</label>
+              <input {...register('benefitCategories')} placeholder="supermercados, restaurantes" className={inputCls} />
             </div>
             <div className="flex gap-3 pt-2">
               <Dialog.Close className="flex-1 h-11 rounded-2xl bg-white/5 border border-white/10 text-gray-400 text-sm font-medium hover:text-white transition-colors">Cancelar</Dialog.Close>
@@ -207,8 +284,9 @@ function PurchaseFormModal({ cardId, onSuccess }: { cardId: number; onSuccess: (
 }
 
 // ── Card Visual ────────────────────────────────────────────────────────────────
-function CardVisual({ card, onDelete, onRefresh }: {
+function CardVisual({ card, intelligence, onDelete, onRefresh }: {
   card: CreditCard
+  intelligence?: CardIntelligence
   onDelete: () => void
   onRefresh: () => void
 }): JSX.Element {
@@ -238,16 +316,25 @@ function CardVisual({ card, onDelete, onRefresh }: {
       >
         <div className="flex justify-between items-start mb-8">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{card.bank}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              {card.bank}{card.franchise ? ` · ${card.franchise}` : ''}
+            </p>
             <p className="text-lg font-bold text-white">{card.name}</p>
           </div>
           <CreditCardIcon size={24} style={{ color: card.color }} />
         </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Disponible</p>
-          <p className={cn('text-3xl font-["Plus_Jakarta_Sans",sans-serif] font-extrabold', usageColor)}>
-            {formatCurrency(availableLimit)}
-          </p>
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Disponible</p>
+            <p className={cn('text-3xl font-["Plus_Jakarta_Sans",sans-serif] font-extrabold', usageColor)}>
+              {formatCurrency(availableLimit)}
+            </p>
+          </div>
+          {intelligence && (
+            <Badge className={STATUS_BADGE_CLASS[intelligence.status]}>
+              {STATUS_LABEL[intelligence.status]}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -276,6 +363,12 @@ function CardVisual({ card, onDelete, onRefresh }: {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Día pago</p>
           <p className="text-sm font-bold text-white">Día {card.paymentDay}</p>
         </div>
+        {intelligence && (
+          <div className="flex-1 bg-black/20 rounded-2xl p-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Si compras hoy</p>
+            <p className="text-sm font-bold text-white">{intelligence.financingDaysIfPurchaseToday} días</p>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -313,9 +406,183 @@ function CardVisual({ card, onDelete, onRefresh }: {
   )
 }
 
+// ── Centro de oportunidades ──────────────────────────────────────────────────────
+function OpportunityCenter({ intelligence }: { intelligence: CardIntelligence[] }): JSX.Element | null {
+  const goodMoment = intelligence.filter((c) => c.status === 'EXCELLENT' || c.status === 'GOOD')
+  const nextCut = [...intelligence].sort((a, b) => a.daysUntilCut - b.daysUntilCut)[0]
+  const nextPayment = [...intelligence].sort((a, b) => a.daysUntilPayment - b.daysUntilPayment)[0]
+
+  if (intelligence.length === 0) return null
+
+  return (
+    <div className="bg-[#121418] border border-white/5 rounded-[28px] p-8 mb-6">
+      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Centro de oportunidades</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Hoy puedes aprovechar</p>
+          {goodMoment.length === 0 ? (
+            <p className="text-xs text-gray-600">Ninguna tarjeta está en buen momento hoy</p>
+          ) : (
+            <div className="space-y-2">
+              {goodMoment.map((c) => (
+                <div key={c.cardId} className="flex items-center justify-between">
+                  <span className="text-sm text-white font-medium">✅ {c.name}</span>
+                  <span className="text-xs text-gray-400">{c.financingDaysIfPurchaseToday} días</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Próximo corte</p>
+          {nextCut && (
+            <div>
+              <p className="text-sm text-white font-medium">{nextCut.name}</p>
+              <p className="text-xs text-gray-400">
+                {nextCut.daysUntilCut === 0 ? 'Hoy' : `En ${nextCut.daysUntilCut} día${nextCut.daysUntilCut === 1 ? '' : 's'}`}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="bg-black/20 rounded-2xl p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Próximo pago</p>
+          {nextPayment && (
+            <div>
+              <p className="text-sm text-white font-medium">{nextPayment.name}</p>
+              <p className="text-xs text-gray-400">
+                {nextPayment.daysUntilPayment === 0 ? 'Hoy' : `En ${nextPayment.daysUntilPayment} día${nextPayment.daysUntilPayment === 1 ? '' : 's'}`}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Comparador de tarjetas ──────────────────────────────────────────────────────
+function CardComparator({ intelligence }: { intelligence: CardIntelligence[] }): JSX.Element {
+  const sorted = [...intelligence].sort(
+    (a, b) => b.financingDaysIfPurchaseToday - a.financingDaysIfPurchaseToday
+  )
+  const bestId = sorted[0]?.cardId
+
+  return (
+    <div className="bg-[#121418] border border-white/5 rounded-[28px] p-8 mb-6">
+      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Comparador de tarjetas</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-[10px] font-bold uppercase tracking-widest text-gray-500 border-b border-white/5">
+              <th className="pb-3 pr-4">Tarjeta</th>
+              <th className="pb-3 pr-4">Días para pagar</th>
+              <th className="pb-3 pr-4">Cashback</th>
+              <th className="pb-3">Recomendación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((card) => (
+              <tr key={card.cardId} className="border-b border-white/3">
+                <td className="py-2.5 pr-4 text-white font-medium">{card.name}</td>
+                <td className="py-2.5 pr-4 text-gray-300">{card.financingDaysIfPurchaseToday}</td>
+                <td className="py-2.5 pr-4 text-gray-300">{card.cashbackPercent > 0 ? `${card.cashbackPercent}%` : '—'}</td>
+                <td className="py-2.5">
+                  {card.cardId === bestId ? (
+                    <span className="text-[#10B981] font-bold">⭐ Mejor opción</span>
+                  ) : (
+                    <Badge className={STATUS_BADGE_CLASS[card.status]}>{STATUS_LABEL[card.status]}</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Asistente de compras ─────────────────────────────────────────────────────────
+function PurchaseAssistantModal(): JSX.Element {
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [recommendations, setRecommendations] = useState<CardRecommendation[] | null>(null)
+
+  const onSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
+    const value = Number(amount)
+    if (!(value > 0)) return
+    setLoading(true)
+    const result = await window.api.creditCards.recommendForPurchase(value)
+    setLoading(false)
+    if (result.success && result.data) setRecommendations(result.data)
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setRecommendations(null); setAmount('') } }}>
+      <Dialog.Trigger asChild>
+        <button className="flex items-center gap-2 px-5 py-2.5 bg-white/5 text-gray-200 font-bold text-sm rounded-2xl hover:bg-white/10 transition-colors border border-white/10">
+          <Sparkles size={16} /> Asistente de compras
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[#121418] border border-white/5 rounded-[28px] p-8 shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <Dialog.Title className="text-xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">Asistente de compras</Dialog.Title>
+            <Dialog.Close className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+              <X size={14} />
+            </Dialog.Close>
+          </div>
+          <form onSubmit={onSubmit} className="flex gap-3 mb-6">
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Monto de la compra"
+              className="flex-1 bg-black/30 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#10B981]/50"
+            />
+            <button type="submit" disabled={loading} className="px-5 rounded-2xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#0ea371] transition-colors disabled:opacity-50">
+              {loading ? '...' : 'Analizar'}
+            </button>
+          </form>
+
+          {recommendations && (
+            <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+              {recommendations.map((rec, idx) => (
+                <div
+                  key={rec.cardId}
+                  className={cn(
+                    'bg-black/20 rounded-2xl p-4 border',
+                    idx === 0 && rec.eligible ? 'border-[#10B981]/40' : 'border-white/5'
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-bold text-white">
+                      {idx === 0 && rec.eligible && '⭐ '}{rec.name} <span className="text-gray-500 font-normal">({rec.bank})</span>
+                    </p>
+                    {!rec.eligible && <span className="text-[10px] font-bold text-rose-400">SIN CUPO</span>}
+                  </div>
+                  <ul className="space-y-1">
+                    {rec.reasons.map((reason, i) => (
+                      <li key={i} className="text-xs text-gray-400">✔ {reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export function CreditCardsPage(): JSX.Element {
   const [cards, setCards] = useState<CreditCard[]>([])
+  const [intelligence, setIntelligence] = useState<CardIntelligence[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async (): Promise<void> => {
@@ -332,6 +599,12 @@ export function CreditCardsPage(): JSX.Element {
       })
       setCards(enriched)
     }
+
+    const intelligenceResult = await window.api.creditCards.getAllIntelligence()
+    if (intelligenceResult.success && intelligenceResult.data) {
+      setIntelligence(intelligenceResult.data)
+    }
+
     setLoading(false)
   }, [])
 
@@ -354,7 +627,10 @@ export function CreditCardsPage(): JSX.Element {
             Tarjetas de Crédito
           </h1>
         </div>
-        <CardFormModal onSuccess={load} />
+        <div className="flex items-center gap-3">
+          {cards.length > 0 && <PurchaseAssistantModal />}
+          <CardFormModal onSuccess={load} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-12 py-8 custom-scrollbar">
@@ -369,11 +645,21 @@ export function CreditCardsPage(): JSX.Element {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {cards.map((card) => (
-              <CardVisual key={card.id} card={card} onDelete={load} onRefresh={load} />
-            ))}
-          </div>
+          <>
+            {intelligence.length >= 1 && <OpportunityCenter intelligence={intelligence} />}
+            {intelligence.length >= 2 && <CardComparator intelligence={intelligence} />}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {cards.map((card) => (
+                <CardVisual
+                  key={card.id}
+                  card={card}
+                  intelligence={intelligence.find((i) => i.cardId === card.id)}
+                  onDelete={load}
+                  onRefresh={load}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

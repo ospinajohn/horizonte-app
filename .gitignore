@@ -95,3 +95,6 @@ graphify-out/
 !.yarn/versions
 .pnp.*
 .yarn/*
+
+# Docs
+doc/nuevas-implementaciones/

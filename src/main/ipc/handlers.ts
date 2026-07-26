@@ -125,6 +125,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('creditCards:delete', (_e, id: number) => CreditCardService.delete(id))
   ipcMain.handle('creditCards:addPurchase', (_e, dto) => CreditCardService.addPurchase(dto))
   ipcMain.handle('creditCards:getWithBalance', (_e, id: number) => CreditCardService.getWithBalance(id))
+  ipcMain.handle('creditCards:getIntelligence', (_e, id: number) => CreditCardService.getIntelligence(id))
+  ipcMain.handle('creditCards:getAllIntelligence', () => CreditCardService.getAllIntelligence())
+  ipcMain.handle('creditCards:recommendForPurchase', (_e, amount: number, categoryTag?: string) =>
+    CreditCardService.recommendForPurchase(amount, categoryTag)
+  )
 
   // ── Patrimony ──────────────────────────────────────────────────────────────
   ipcMain.handle('patrimony:getData', () => PatrimonyService.getData())

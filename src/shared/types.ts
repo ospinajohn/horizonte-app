@@ -32,6 +32,9 @@ export type AlertType =
   | 'BUDGET_WARNING'
   | 'NEGATIVE_BALANCE'
   | 'GOAL_ACHIEVED'
+  | 'CARD_CUT_TOMORROW'
+  | 'CARD_PAYMENT_DUE'
+  | 'CARD_BEST_MOMENT'
   | 'CUSTOM'
 
 export type CategoryType = 'INCOME' | 'EXPENSE'
@@ -388,6 +391,8 @@ export interface CreateCreditDto {
 
 // ─── Tarjetas de Crédito ──────────────────────────────────────────────────────
 
+export type CardBenefitType = 'CASHBACK' | 'MILES' | 'POINTS' | 'DISCOUNTS'
+
 export interface CreditCard {
   id: number
   name: string
@@ -400,6 +405,10 @@ export interface CreditCard {
   isActive: boolean
   createdAt: Date
   updatedAt: Date
+  franchise?: string | null
+  cashbackPercent?: number | null
+  benefitTypes?: CardBenefitType[] | null
+  benefitCategories?: string[] | null
   purchases?: CreditCardPurchase[]
   // Calculados en runtime
   usedAmount?: number
@@ -425,6 +434,38 @@ export interface CreateCreditCardDto {
   paymentDay: number
   annualRate?: number
   color?: string
+  franchise?: string
+  cashbackPercent?: number
+  benefitTypes?: CardBenefitType[]
+  benefitCategories?: string[]
+}
+
+export type CardStatus = 'EXCELLENT' | 'GOOD' | 'NORMAL' | 'AVOID'
+
+export interface CardIntelligence {
+  cardId: number
+  name: string
+  bank: string
+  color: string
+  status: CardStatus
+  daysUntilCut: number
+  daysUntilPayment: number
+  financingDaysIfPurchaseToday: number
+  cutDate: Date
+  paymentDate: Date
+  availableLimit: number
+  cashbackPercent: number
+  benefitTypes: CardBenefitType[]
+  benefitCategories: string[]
+}
+
+export interface CardRecommendation {
+  cardId: number
+  name: string
+  bank: string
+  score: number
+  reasons: string[]
+  eligible: boolean
 }
 
 export interface CreateCreditCardPurchaseDto {

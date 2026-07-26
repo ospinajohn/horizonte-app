@@ -111,7 +111,11 @@ const creditCardsAPI = {
   update: (id: number, dto: any) => ipcRenderer.invoke('creditCards:update', id, dto),
   delete: (id: number) => ipcRenderer.invoke('creditCards:delete', id),
   addPurchase: (dto: any) => ipcRenderer.invoke('creditCards:addPurchase', dto),
-  getWithBalance: (id: number) => ipcRenderer.invoke('creditCards:getWithBalance', id)
+  getWithBalance: (id: number) => ipcRenderer.invoke('creditCards:getWithBalance', id),
+  getIntelligence: (id: number) => ipcRenderer.invoke('creditCards:getIntelligence', id),
+  getAllIntelligence: () => ipcRenderer.invoke('creditCards:getAllIntelligence'),
+  recommendForPurchase: (amount: number, categoryTag?: string) =>
+    ipcRenderer.invoke('creditCards:recommendForPurchase', amount, categoryTag)
 }
 
 const patrimonyAPI = {
