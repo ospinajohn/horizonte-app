@@ -1,24 +1,23 @@
 import { getPrismaClient } from '../database/client'
-import { startOfMonth, endOfMonth } from 'date-fns'
+import { wrapService } from '../lib/wrapService'
+import { createBudgetSchema, validateDto } from '../../shared/validation'
 import type { Budget, BudgetCategory, CreateBudgetDto, ApiResult } from '../../shared/types'
 
 const db = () => getPrismaClient()
 
 export const BudgetService = {
   async getAll(): Promise<ApiResult<Budget[]>> {
-    try {
+    return wrapService(async () => {
       const budgets = await db().budget.findMany({
         include: { categories: { include: { category: true } } },
         orderBy: { startDate: 'desc' }
       })
-      return { success: true, data: budgets as Budget[] }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+      return budgets as Budget[]
+    })
   },
 
   async getActive(): Promise<ApiResult<Budget | null>> {
-    try {
+    return wrapService(async () => {
       const today = new Date()
       const budget = await db().budget.findFirst({
         where: {
@@ -28,22 +27,21 @@ export const BudgetService = {
         },
         include: { categories: { include: { category: true } } }
       })
-      return { success: true, data: budget as Budget | null }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+      return budget as Budget | null
+    })
   },
 
   async create(dto: CreateBudgetDto): Promise<ApiResult<Budget>> {
-    try {
+    return wrapService(async () => {
+      const data = validateDto(createBudgetSchema, dto)
       const budget = await db().budget.create({
         data: {
-          name: dto.name,
-          period: dto.period,
-          startDate: dto.startDate,
-          endDate: dto.endDate,
+          name: data.name,
+          period: data.period,
+          startDate: data.startDate,
+          endDate: data.endDate,
           categories: {
-            create: dto.categories.map((c) => ({
+            create: data.categories.map((c) => ({
               categoryId: c.categoryId,
               limit: c.limit
             }))
@@ -51,31 +49,26 @@ export const BudgetService = {
         },
         include: { categories: { include: { category: true } } }
       })
-      return { success: true, data: budget as Budget }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+      return budget as Budget
+    })
   },
 
   async delete(id: number): Promise<ApiResult<void>> {
-    try {
+    return wrapService(async () => {
       await db().budget.update({ where: { id }, data: { isActive: false } })
-      return { success: true }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+    })
   },
 
   /** Calcula el gasto real de cada categoría en el período del presupuesto */
   async getWithSpending(budgetId: number): Promise<ApiResult<Budget & {
     categories: Array<BudgetCategory & { spent: number; remaining: number; percentage: number }>
   }>> {
-    try {
+    return wrapService(async () => {
       const budget = await db().budget.findUnique({
         where: { id: budgetId },
         include: { categories: { include: { category: true } } }
       })
-      if (!budget) return { success: false, error: 'Presupuesto no encontrado' }
+      if (!budget) throw new Error('Presupuesto no encontrado')
 
       const categoriesWithSpending = await Promise.all(
         budget.categories.map(async (bc) => {
@@ -94,23 +87,15 @@ export const BudgetService = {
         })
       )
 
-      return {
-        success: true,
-        data: { ...budget, categories: categoriesWithSpending } as any
-      }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+      return { ...budget, categories: categoriesWithSpending } as any
+    })
   },
 
   /** Presupuesto activo con gasto real incluido */
   async getActiveWithSpending(): Promise<ApiResult<any>> {
-    try {
-      const active = await BudgetService.getActive()
-      if (!active.success || !active.data) return { success: true, data: null }
-      return BudgetService.getWithSpending(active.data.id)
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+    const active = await BudgetService.getActive()
+    if (!active.success) return active
+    if (!active.data) return { success: true, data: null }
+    return BudgetService.getWithSpending(active.data.id)
   }
 }
