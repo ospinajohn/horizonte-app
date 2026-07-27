@@ -11,16 +11,29 @@ import { DecisionLog } from './DecisionLog'
 import { GoalsCard } from './GoalsCard'
 import { InsightsRow } from './InsightsRow'
 import { CreditCardsInsightCard } from './CreditCardsInsightCard'
-import type { CardIntelligence } from '../../../../shared/types'
+import { BiweeklyView } from './BiweeklyView'
+import type { CardIntelligence, FinancialViewDefault } from '../../../../shared/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboard } from '@/hooks/useDashboard'
 import { TransactionFormModal } from '../transactions/TransactionFormModal'
+
+type PageTab = 'MONTHLY' | 'BIWEEKLY'
 
 export function DashboardPage(): JSX.Element {
   const { data, loading, refetch } = useDashboard()
   const navigate = useNavigate()
   const [quickFormOpen, setQuickFormOpen] = useState(false)
   const [quickFormMode, setQuickFormMode] = useState<'income' | 'expense'>('income')
+  const [pageTab, setPageTab] = useState<PageTab>('MONTHLY')
+
+  useEffect(() => {
+    window.api.config.get().then((res: any) => {
+      if (res.success && res.data?.financialViewDefault) {
+        const def: FinancialViewDefault = res.data.financialViewDefault
+        setPageTab(def === 'BIWEEKLY' ? 'BIWEEKLY' : 'MONTHLY')
+      }
+    }).catch(() => {})
+  }, [])
 
   const openQuickForm = (mode: 'income' | 'expense'): void => {
     setQuickFormMode(mode)
@@ -167,6 +180,28 @@ export function DashboardPage(): JSX.Element {
         </div>
       </header>
 
+      {/* ── Tabs: Mes | Quincena ───────────────────────────────────────── */}
+      <div className="flex bg-[#0F1115] border border-white/5 rounded-2xl p-1 w-fit">
+        {([
+          { id: 'MONTHLY', label: 'Mes' },
+          { id: 'BIWEEKLY', label: 'Quincena' }
+        ] as { id: PageTab; label: string }[]).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setPageTab(t.id)}
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              pageTab === t.id ? 'bg-[#10B981] text-black' : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === 'BIWEEKLY' && <BiweeklyView />}
+
+      {pageTab === 'MONTHLY' && (
+      <>
       {/* ── Row 1: Balance + Próxima quincena ──────────────────────────── */}
       <section className="grid grid-cols-12 gap-8">
         {loading ? (
@@ -263,6 +298,8 @@ export function DashboardPage(): JSX.Element {
           />
         )}
       </section>
+      </>
+      )}
 
       <TransactionFormModal
         open={quickFormOpen}

@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw, Download, RotateCcw } from 'lucide-react'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import type { AppConfig } from '../../../../shared/types'
+import type { AppConfig, FinancialViewDefault } from '../../../../shared/types'
 
 type ConfigDraft = {
   userName: string
   currency: string
   payDay: number
   secondPayDay: number | null
+  financialViewDefault: FinancialViewDefault
   notificationsEnabled: boolean
   alertDaysAhead: number
 }
+
+const FINANCIAL_VIEW_OPTIONS: { value: FinancialViewDefault; label: string; description: string }[] = [
+  { value: 'MONTHLY', label: 'Mensual', description: 'El Dashboard abre mostrando el resumen del mes completo' },
+  { value: 'BIWEEKLY', label: 'Quincenal', description: 'El Dashboard abre mostrando la quincena actual (Q1/Q2)' }
+]
 
 const CURRENCIES = [
   { value: 'COP', label: 'COP — Peso Colombiano' },
@@ -64,6 +70,7 @@ export function SettingsPage(): JSX.Element {
     currency: 'COP',
     payDay: 15,
     secondPayDay: null,
+    financialViewDefault: 'MONTHLY',
     notificationsEnabled: true,
     alertDaysAhead: 3
   })
@@ -83,7 +90,8 @@ export function SettingsPage(): JSX.Element {
           userName: res.data.userName ?? 'Usuario',
           currency: res.data.currency ?? 'COP',
           payDay: res.data.payDay ?? 15,
-          secondPayDay: res.data.secondPayDay ?? null
+          secondPayDay: res.data.secondPayDay ?? null,
+          financialViewDefault: res.data.financialViewDefault ?? 'MONTHLY'
         }))
       }
     })
@@ -102,7 +110,8 @@ export function SettingsPage(): JSX.Element {
     await window.api.config.update({
       currency: draft.currency,
       payDay: draft.payDay,
-      secondPayDay: draft.secondPayDay
+      secondPayDay: draft.secondPayDay,
+      financialViewDefault: draft.financialViewDefault
     })
     setSavingPrefs(false)
     setSavedPrefs(true)
@@ -236,6 +245,34 @@ export function SettingsPage(): JSX.Element {
                   className="w-full bg-[#0F1115] border border-white/10 rounded-2xl px-5 py-3 text-sm text-white focus:outline-none placeholder:text-gray-600"
                 />
               </label>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Vista financiera por defecto
+              </span>
+              <p className="text-[11px] text-gray-600">
+                Define con qué pestaña abre el Dashboard. Ambas vistas (Mes y Quincena) siguen disponibles siempre.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {FINANCIAL_VIEW_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDraft((d) => ({ ...d, financialViewDefault: opt.value }))}
+                    className={`text-left rounded-2xl border px-4 py-3 transition-all ${
+                      draft.financialViewDefault === opt.value
+                        ? 'bg-[#10B981]/10 border-[#10B981]/40'
+                        : 'bg-[#0F1115] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <p className={`text-sm font-bold ${draft.financialViewDefault === opt.value ? 'text-[#10B981]' : 'text-white'}`}>
+                      {opt.label}
+                    </p>
+                    <p className="text-[11px] text-gray-600 mt-0.5">{opt.description}</p>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex justify-end">

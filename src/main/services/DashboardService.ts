@@ -3,10 +3,19 @@ import { AccountService } from './AccountService'
 import { TransactionService } from './TransactionService'
 import { RecurringService } from './RecurringService'
 import { AlertService } from './AlertService'
-import type { DashboardData, ApiResult } from '../../shared/types'
+import { wrapService } from '../lib/wrapService'
+import type { DashboardData, ApiResult, BiweeklyData, Quincena } from '../../shared/types'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
 
 const db = () => getPrismaClient()
+
+function getQuincenaRange(year: number, month: number, quincena: Quincena): { start: Date; end: Date } {
+  if (quincena === 'Q1') {
+    return { start: new Date(year, month - 1, 1), end: new Date(year, month - 1, 15, 23, 59, 59, 999) }
+  }
+  const lastDay = new Date(year, month, 0).getDate()
+  return { start: new Date(year, month - 1, 16), end: new Date(year, month - 1, lastDay, 23, 59, 59, 999) }
+}
 
 export const DashboardService = {
   async getData(): Promise<ApiResult<DashboardData>> {
@@ -64,5 +73,46 @@ export const DashboardService = {
     } catch (error: any) {
       return { success: false, error: error.message }
     }
+  },
+
+  async getBiweeklyData(year: number, month: number, quincena: Quincena): Promise<ApiResult<BiweeklyData>> {
+    return wrapService(async () => {
+      const { start, end } = getQuincenaRange(year, month, quincena)
+
+      const [incomeAgg, expenseAgg, committedItems] = await Promise.all([
+        db().transaction.aggregate({
+          where: { type: 'INCOME', date: { gte: start, lte: end } },
+          _sum: { amount: true }
+        }),
+        db().transaction.aggregate({
+          where: { type: 'EXPENSE', date: { gte: start, lte: end } },
+          _sum: { amount: true }
+        }),
+        db().recurringItem.findMany({
+          where: { isActive: true, nextDate: { gte: start, lte: end } },
+          include: { category: true },
+          orderBy: { nextDate: 'asc' }
+        })
+      ])
+
+      const income = incomeAgg._sum.amount ?? 0
+      const spent = expenseAgg._sum.amount ?? 0
+      const committed = committedItems
+        .filter((i) => i.type === 'EXPENSE' || i.type === 'PAYMENT')
+        .reduce((acc, i) => acc + i.amount, 0)
+
+      return {
+        year,
+        month,
+        quincena,
+        rangeStart: start,
+        rangeEnd: end,
+        income,
+        committed,
+        spent,
+        available: income - committed - spent,
+        committedItems: committedItems.filter((i) => i.type === 'EXPENSE' || i.type === 'PAYMENT') as any
+      }
+    })
   }
 }

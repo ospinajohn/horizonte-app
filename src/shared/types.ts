@@ -43,6 +43,8 @@ export type RecurringItemType = 'INCOME' | 'EXPENSE' | 'PAYMENT'
 
 // ─── Entidades del dominio ────────────────────────────────────────────────────
 
+export type FinancialViewDefault = 'MONTHLY' | 'BIWEEKLY'
+
 export interface AppConfig {
   id: number
   userName: string
@@ -52,6 +54,7 @@ export interface AppConfig {
   weekStartDay: number
   payDay: number
   secondPayDay: number | null
+  financialViewDefault: FinancialViewDefault
   onboardingCompleted: boolean
   createdAt: Date
   updatedAt: Date
@@ -323,6 +326,21 @@ export interface DashboardData {
   expensesByCategory: Array<{ categoryId: number; categoryName: string; color: string; amount: number }>
   cashflowChart: Array<{ date: string; income: number; expense: number; balance: number }>
   unreadAlerts: number
+}
+
+export type Quincena = 'Q1' | 'Q2'
+
+export interface BiweeklyData {
+  year: number
+  month: number
+  quincena: Quincena
+  rangeStart: Date
+  rangeEnd: Date
+  income: number
+  committed: number
+  spent: number
+  available: number
+  committedItems: RecurringItem[]
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

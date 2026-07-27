@@ -94,6 +94,9 @@ export function registerIpcHandlers(): void {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
   ipcMain.handle('dashboard:getData', () => DashboardService.getData())
+  ipcMain.handle('dashboard:getBiweeklyData', (_e, year: number, month: number, quincena: 'Q1' | 'Q2') =>
+    DashboardService.getBiweeklyData(year, month, quincena)
+  )
 
   // ── Budgets ────────────────────────────────────────────────────────────────
   ipcMain.handle('budgets:getAll', () => BudgetService.getAll())

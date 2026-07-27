@@ -25,6 +25,7 @@ interface MonthData {
 
 interface IncomeVsExpenseChartProps {
   data: MonthData[];
+  subtitle?: string;
 }
 
 const CustomTooltip = ({
@@ -114,6 +115,7 @@ const CustomBarLabel = (props: any) => {
 
 export function IncomeVsExpenseChart({
   data,
+  subtitle = "Comparativa mensual de los últimos 6 meses",
 }: IncomeVsExpenseChartProps): JSX.Element {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -138,7 +140,7 @@ export function IncomeVsExpenseChart({
             Ingresos vs Gastos
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Comparativa mensual de los últimos 6 meses
+            {subtitle}
           </p>
         </div>
 

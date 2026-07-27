@@ -22,6 +22,7 @@ model AppConfig {
   weekStartDay        Int      @default(1) // 0=domingo, 1=lunes
   payDay              Int      @default(15) // día del mes
   secondPayDay        Int? // para quincena (ej: 30)
+  financialViewDefault String  @default("MONTHLY") // MONTHLY | BIWEEKLY — pestaña por defecto del Dashboard
   onboardingCompleted Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

@@ -76,7 +76,9 @@ const alertsAPI = {
 }
 
 const dashboardAPI = {
-  getData: () => ipcRenderer.invoke('dashboard:getData')
+  getData: () => ipcRenderer.invoke('dashboard:getData'),
+  getBiweeklyData: (year: number, month: number, quincena: 'Q1' | 'Q2') =>
+    ipcRenderer.invoke('dashboard:getBiweeklyData', year, month, quincena)
 }
 
 const budgetsAPI = {
