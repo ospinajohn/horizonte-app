@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
+import { parseLocalDate } from '@/lib/utils'
 import { Input, DatePicker } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -105,7 +106,7 @@ export function GoalFormModal({ open, onClose, onSuccess, goal }: GoalFormModalP
         name: values.name,
         targetAmount: values.targetAmount,
         currentAmount: values.currentAmount || 0,
-        deadline: values.deadline ? new Date(values.deadline) : undefined,
+        deadline: values.deadline ? parseLocalDate(values.deadline) : undefined,
         priority: values.priority,
         monthlyTarget: values.monthlyTarget || undefined,
         accountId: values.accountId || undefined,

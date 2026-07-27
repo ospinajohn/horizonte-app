@@ -7,7 +7,7 @@ import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import { Input, DatePicker } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, parseLocalDate } from '@/lib/utils'
 import type { SavingsGoal } from '../../../../shared/types'
 
 const contributionSchema = z.object({
@@ -59,7 +59,7 @@ export function ContributionModal({ open, onClose, onSuccess, goal }: Contributi
       const result = await window.api.goals.addContribution({
         goalId: goal.id,
         amount: values.amount,
-        date: new Date(values.date),
+        date: parseLocalDate(values.date),
         notes: values.notes || undefined
       })
 

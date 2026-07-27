@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, CalendarCheck, X, Edit2, Trash2, CheckCircle2, Clock } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
@@ -86,8 +86,8 @@ function CompromisoFormModal({
       type: data.type,
       amount: data.amount,
       recurrence: data.recurrence,
-      nextDate: new Date(data.nextDate),
-      endDate: data.endDate ? new Date(data.endDate) : undefined,
+      nextDate: parseLocalDate(data.nextDate),
+      endDate: data.endDate ? parseLocalDate(data.endDate) : undefined,
       categoryId: data.categoryId || undefined,
       accountId: data.accountId
     }

@@ -54,6 +54,7 @@ export const createBudgetSchema = z.object({
 export const createSavingsGoalSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   targetAmount: z.number().positive('El monto objetivo debe ser mayor a 0'),
+  currentAmount: z.number().min(0).optional(),
   deadline: z.coerce.date().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
   icon: z.string().optional(),

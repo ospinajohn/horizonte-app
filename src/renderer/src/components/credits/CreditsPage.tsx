@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DatePicker } from '@/components/ui/input'
 import type { Credit, AmortizationRow } from '../../../../shared/types'
@@ -57,7 +57,7 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
     setSaving(true)
     const result = await window.api.credits.create({
       ...data,
-      startDate: new Date(data.startDate),
+      startDate: parseLocalDate(data.startDate),
       notes: data.notes || undefined
     })
     setSaving(false)

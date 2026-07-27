@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, CreditCard as CreditCardIcon, X, ShoppingBag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import type { CreditCard, CreditCardPurchase, CardIntelligence, CardRecommendation, CardPurchaseAnalytics } from '../../../../shared/types'
@@ -229,7 +229,7 @@ function PurchaseFormModal({ cardId, cardName, onSuccess }: {
       cardId,
       description: data.description,
       amount: data.amount,
-      date: new Date(data.date),
+      date: parseLocalDate(data.date),
       installments: data.installments,
       isAdvance: data.isAdvance
     })

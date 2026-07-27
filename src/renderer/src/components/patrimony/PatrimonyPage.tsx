@@ -17,7 +17,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, Home, Car, Monitor, TrendingUp, Package, X, Building2 } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import type { PatrimonyData, Asset, AssetType } from '../../../../shared/types'
 
 // ── Asset icons ────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
     setSaving(true)
     const result = await window.api.patrimony.createAsset({
       ...data,
-      acquisitionDate: data.acquisitionDate ? new Date(data.acquisitionDate) : undefined
+      acquisitionDate: data.acquisitionDate ? parseLocalDate(data.acquisitionDate) : undefined
     })
     setSaving(false)
     if (result.success) { reset(); setOpen(false); onSuccess() }

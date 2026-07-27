@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, parseLocalDate } from '@/lib/utils'
 import { Input, DatePicker } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
@@ -65,7 +65,7 @@ export function TransferFormModal({ open, onClose, onSuccess }: TransferFormModa
       fromAccountId: values.fromAccountId,
       toAccountId: values.toAccountId,
       amount: values.amount,
-      date: new Date(values.date),
+      date: parseLocalDate(values.date),
       description: values.description || undefined
     }
 

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, Paperclip, Tag } from 'lucide-react'
 import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { cn, parseLocalDate } from '@/lib/utils'
 import { Input, DatePicker } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
@@ -141,7 +141,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
     const dto: CreateTransactionDto = {
       type: isExpense ? 'EXPENSE' : 'INCOME',
       amount: values.amount,
-      date: new Date(values.date),
+      date: parseLocalDate(values.date),
       description: values.description || undefined,
       notes: values.notes || undefined,
       accountId: values.accountId,
@@ -168,7 +168,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
           type: isExpense ? 'EXPENSE' : 'INCOME',
           amount: values.amount,
           recurrence: values.recurrence!,
-          nextDate: new Date(values.date),
+          nextDate: parseLocalDate(values.date),
           categoryId: values.categoryId || undefined,
           accountId: values.accountId
         }

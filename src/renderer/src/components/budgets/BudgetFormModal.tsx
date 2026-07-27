@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { z } from 'zod'
+import { parseLocalDate } from '@/lib/utils'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -66,8 +67,8 @@ export function BudgetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.E
     try {
       const result = await window.api.budgets.create({
         ...data,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate)
+        startDate: parseLocalDate(data.startDate),
+        endDate: parseLocalDate(data.endDate)
       })
 
       if (result.success) {
