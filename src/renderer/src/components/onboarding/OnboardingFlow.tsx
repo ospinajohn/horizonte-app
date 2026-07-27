@@ -241,7 +241,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 </label>
                 <Input
                   {...step1Form.register('userName')}
-                  placeholder="Ej. Carlos"
+                  placeholder="Ej. John James"
                   autoFocus
                 />
                 {step1Form.formState.errors.userName && (
