@@ -19,6 +19,7 @@ import { ReportsPage } from './components/reports/ReportsPage'
 import { HealthPage } from './components/health/HealthPage'
 import { DecisionCenterPage } from './components/decisionCenter/DecisionCenterPage'
 import { SettingsPage } from './components/settings/SettingsPage'
+import { CompromisosPage } from './components/compromisos/CompromisosPage'
 
 function SplashScreen(): JSX.Element {
   return (
@@ -69,6 +70,7 @@ function RouterContent(): JSX.Element {
           <Route path="tarjetas" element={<CreditCardsPage />} />
           <Route path="patrimonio" element={<PatrimonyPage />} />
           <Route path="suscripciones" element={<SubscriptionsPage />} />
+          <Route path="compromisos" element={<CompromisosPage />} />
           <Route path="reportes" element={<ReportsPage />} />
           <Route path="laboratorio" element={<LaboratorioPage />} />
           <Route path="salud" element={<HealthPage />} />

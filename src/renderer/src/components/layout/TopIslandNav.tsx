@@ -19,6 +19,7 @@ import {
   HeartPulse,
   MessageSquare,
   Settings,
+  CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,11 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Suscripciones",
         path: "/suscripciones",
         icon: <Repeat size={14} />,
+      },
+      {
+        label: "Compromisos",
+        path: "/compromisos",
+        icon: <CalendarCheck size={14} />,
       },
     ],
   },
