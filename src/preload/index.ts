@@ -61,7 +61,8 @@ const recurringAPI = {
   create: (dto: any) => ipcRenderer.invoke('recurring:create', dto),
   update: (id: number, dto: any) => ipcRenderer.invoke('recurring:update', id, dto),
   delete: (id: number) => ipcRenderer.invoke('recurring:delete', id),
-  getProjection: (months?: number) => ipcRenderer.invoke('recurring:getProjection', months)
+  getProjection: (months?: number) => ipcRenderer.invoke('recurring:getProjection', months),
+  markAsPaid: (id: number) => ipcRenderer.invoke('recurring:markAsPaid', id)
 }
 
 const alertsAPI = {

@@ -57,7 +57,6 @@ type FormValues = z.infer<typeof schema>
 export function TransactionFormModal({ open, onClose, onSuccess, mode, transaction }: TransactionFormModalProps): JSX.Element {
   const isEdit = !!transaction
   const isExpense = mode === 'expense'
-  const isIncome = mode === 'income'
 
   const { accounts } = useAccounts()
   const { categories } = useCategories(isExpense ? 'EXPENSE' : 'INCOME')
@@ -152,7 +151,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
         tags: tags.length > 0 ? tags : undefined,
         receiptPath: values.receiptPath || undefined
       }),
-      isRecurring: isIncome && values.recurrence !== 'NONE'
+      isRecurring: values.recurrence !== 'NONE'
     }
 
     let result
@@ -163,11 +162,10 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
     }
 
     if (result.success && result.data) {
-      // If income with recurrence, also create recurring item
-      if (isIncome && values.recurrence !== 'NONE' && !isEdit) {
+      if (values.recurrence !== 'NONE' && !isEdit) {
         const recurringDto: CreateRecurringItemDto = {
-          name: values.description || 'Ingreso recurrente',
-          type: 'INCOME',
+          name: values.description || (isExpense ? 'Gasto recurrente' : 'Ingreso recurrente'),
+          type: isExpense ? 'EXPENSE' : 'INCOME',
           amount: values.amount,
           recurrence: values.recurrence!,
           nextDate: new Date(values.date),
@@ -410,8 +408,8 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
               </>
             )}
 
-            {/* INCOME-ONLY FIELDS */}
-            {isIncome && !isEdit && (
+            {/* RECURRENCE FIELD */}
+            {!isEdit && (
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Recurrencia

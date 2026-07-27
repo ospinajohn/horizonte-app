@@ -81,6 +81,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('recurring:getProjection', (_e, months?) =>
     RecurringService.getProjection(months)
   )
+  ipcMain.handle('recurring:markAsPaid', (_e, id: number) => RecurringService.markAsPaid(id))
 
   // ── Alerts ─────────────────────────────────────────────────────────────────
   ipcMain.handle('alerts:getAll', (_e, onlyUnread?) => AlertService.getAll(onlyUnread))

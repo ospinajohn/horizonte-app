@@ -96,6 +96,39 @@ export const RecurringService = {
     return next
   },
 
+  async markAsPaid(id: number): Promise<ApiResult<RecurringItem>> {
+    try {
+      const item = await db().recurringItem.findUnique({ where: { id } })
+      if (!item) return { success: false, error: 'Item recurrente no encontrado' }
+
+      if (!item.accountId) return { success: false, error: 'El item recurrente no tiene cuenta asociada' }
+
+      await db().transaction.create({
+        data: {
+          type: item.type as any,
+          amount: item.amount,
+          date: item.nextDate,
+          description: item.name,
+          accountId: item.accountId,
+          ...(item.categoryId != null && { categoryId: item.categoryId }),
+          isRecurring: true,
+          recurringItemId: item.id
+        }
+      })
+
+      const nextDate = RecurringService.getNextDate(item.nextDate, item.recurrence)
+      const updated = await db().recurringItem.update({
+        where: { id },
+        data: { nextDate },
+        include: { category: true, account: true }
+      })
+
+      return { success: true, data: updated as RecurringItem }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  },
+
   /**
    * Genera proyecciones de items recurrentes para los próximos N meses
    */
