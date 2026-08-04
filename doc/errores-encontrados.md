@@ -1,7 +1,0 @@
-- Al crear una meta en saldo actual no toma el valor, aun asi se le ponga, siempre queda en 0
-- en la seccion de suscripciones no se puede agregar la fecha de donde se volvera a generar el cobro 
-- creo que compromisos y suscripciones se pueden unir porque parecen temas iguales
-- el tema de desiciones no se comprende para nada, creo que tiene solo datos dummi, salud financiera se siente igual
-- algo que no comprendo aun, es como debo registrar mi sueldo por quincena o el total ? algo mas es que yo normalmente manejo el pago del arriendo por ejemplo son 900mil y normalmente lo sacaba de las dos quincena de una 400 y de otra 500. entonces como se manejaria
-- el manejo de las fechas creo que no estan adecuada a la zona horaria que estoy, porque pongo por ejemplo 26 de eneero y y aparece 25 de enero
-- en el planificador tambien uno selecciona una fecha por ejemplo y se muestra la anterior, entonces hay algo mal en la db con el tema o manejo de la fechas 

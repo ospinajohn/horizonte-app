@@ -315,6 +315,10 @@ window.api.decisionCenter  // answer, saveQuery, getHistory
 | `/salud` | `HealthPage` | ✅ Implementado — gauge SVG animado, 8 factores, historial |
 | `/recomendaciones` | `RecommendationsPage` | ✅ Implementado — 4 tipos, tabs, marcar aplicada |
 | `/decisiones` | `DecisionCenterPage` | ✅ Implementado — 6 tipos de pregunta, historial colapsable |
+| `/laboratorio` | `LaboratorioPage` | ✅ Implementado — simulador de escenarios, capacidad de deuda, fondo de emergencia |
+| `/compromisos` | `CompromisosPage` | ✅ Implementado — gestión de gastos/pagos fijos recurrentes |
+
+> Nota: el componente de navegación principal es `TopIslandNav` (`src/renderer/src/components/layout/`), no `Sidebar` — este último nombre quedó obsoleto en este documento.
 
 ---
 
@@ -552,3 +556,13 @@ El proyecto Horizonte v1.0 está completo con todas las fases implementadas. Con
   - Exportación avanzada a Excel con SheetJS
   - Soporte multi-idioma (i18n)
   - Modo claro (light theme)
+
+### Features post-Fase 3 ya implementadas
+
+- **Vista Quincenal del Dashboard** — ✅ completa (`BiweeklyView.tsx`, `financialViewDefault`). Ver `doc/fases/FASE-vista-quincenal.md`. Roadmap de enriquecimiento (top categoría, tendencia, gráfico histórico Q1/Q2) pendiente en `doc/fases/FASE-vista-quincenal-enriquecida.md`.
+- **Optimización inteligente de tarjetas de crédito** — ✅ completa (motor de ciclos de facturación, comparador, asistente de compras). Ver `doc/nuevas-implementaciones/beneficios-tarjetas.md` (spec), `-fase1-progreso.md` (decisiones tomadas) y `-ROADMAP.md` (estado por fase).
+- **Módulos Laboratorio y Compromisos** — no forman parte de las fases 1-3 originales pero están completos e integrados (rutas, nav, IPC).
+
+### Deuda técnica conocida
+
+- **Patrón de hooks inconsistente**: solo `accounts`, `transactions`, `budgets`, `goals`, `transfers`, `dashboard` y `categories` tienen hook dedicado en `src/renderer/src/hooks/`. El resto de módulos (alerts, compromisos, creditCards, credits, decisionCenter, health, laboratorio, patrimony, planner, reports, settings, subscriptions) llaman `window.api.X` directamente en el componente de página, en vez de vía hook. Al tocar uno de estos módulos por otra razón, considerar extraer su hook para alinear con el patrón estándar documentado arriba.

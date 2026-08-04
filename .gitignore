@@ -98,3 +98,6 @@ graphify-out/
 
 # Docs
 doc/nuevas-implementaciones/
+
+# Archivos temporales
+temp/

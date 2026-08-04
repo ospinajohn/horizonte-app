@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,7 +16,8 @@ const step1Schema = z.object({
 const step2Schema = z.object({
   currency: z.enum(['COP', 'USD', 'EUR', 'MXN']),
   payDay: z.coerce.number().min(1).max(31),
-  secondPayDay: z.coerce.number().min(1).max(31).optional().or(z.literal(''))
+  secondPayDay: z.coerce.number().min(1).max(31).optional().or(z.literal('')),
+  financialViewDefault: z.enum(['MONTHLY', 'BIWEEKLY'])
 })
 
 const step3Schema = z.object({
@@ -74,6 +75,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   const [createdAccountId, setCreatedAccountId] = useState<number | null>(null)
   const [createdAccountName, setCreatedAccountName] = useState<string | null>(null)
   const [createdIncome, setCreatedIncome] = useState<number | null>(null)
+  const [financialViewDefault, setFinancialViewDefault] = useState<'MONTHLY' | 'BIWEEKLY'>('MONTHLY')
 
   const goToStep = (n: number): void => {
     setFadeOut(true)
@@ -101,16 +103,31 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   // ── Step 2 ─────────────────────────────────────────────────────────────────
   const step2Form = useForm<Step2>({
     resolver: zodResolver(step2Schema),
-    defaultValues: { currency: 'COP', payDay: 15, secondPayDay: '' }
+    defaultValues: { currency: 'COP', payDay: 15, secondPayDay: '', financialViewDefault: 'MONTHLY' }
   })
+
+  const watchedSecondPayDay = step2Form.watch('secondPayDay')
+  const financialViewTouched = step2Form.formState.dirtyFields.financialViewDefault
+
+  useEffect(() => {
+    if (financialViewTouched) return
+    step2Form.setValue(
+      'financialViewDefault',
+      watchedSecondPayDay ? 'BIWEEKLY' : 'MONTHLY'
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedSecondPayDay])
 
   const onStep2 = step2Form.handleSubmit(async (values) => {
     await window.api.config.update({
       currency: values.currency,
       payDay: values.payDay,
-      secondPayDay: values.secondPayDay ? Number(values.secondPayDay) : null
+      secondPayDay: values.secondPayDay ? Number(values.secondPayDay) : null,
+      financialViewDefault: values.financialViewDefault
     })
     setCurrency(values.currency)
+    setFinancialViewDefault(values.financialViewDefault)
+    step4Form.setValue('recurrence', values.financialViewDefault)
     next()
   })
 
@@ -147,6 +164,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
     resolver: zodResolver(step4Schema),
     defaultValues: { amount: 0, incomeType: 'Salario', recurrence: 'MONTHLY' }
   })
+
+  const watchedRecurrence = step4Form.watch('recurrence')
 
   const onStep4 = step4Form.handleSubmit(async (values) => {
     const today = new Date()
@@ -326,6 +345,30 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
+                  ¿Cómo prefieres ver tus finanzas?
+                </label>
+                <Controller
+                  name="financialViewDefault"
+                  control={step2Form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MONTHLY">Mensual</SelectItem>
+                        <SelectItem value="BIWEEKLY">Quincenal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Define qué vista abre primero en el Dashboard. Siempre puedes cambiar entre ambas.
+                </p>
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -451,12 +494,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
             <h2 className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white mb-1">
               Ingreso principal
             </h2>
-            <p className="text-sm text-gray-400 mb-8">¿Cuánto ganas al mes?</p>
+            <p className="text-sm text-gray-400 mb-8">
+              {watchedRecurrence === 'BIWEEKLY' ? '¿Cuánto recibes cada quincena?' : '¿Cuánto ganas al mes?'}
+            </p>
 
             <form onSubmit={onStep4} className="space-y-5">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
-                  Monto mensual
+                  {watchedRecurrence === 'BIWEEKLY' ? 'Monto por quincena' : 'Monto mensual'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
@@ -472,6 +517,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 {step4Form.formState.errors.amount && (
                   <p className="text-xs text-rose-400 mt-1">
                     {step4Form.formState.errors.amount.message}
+                  </p>
+                )}
+                {watchedRecurrence === 'BIWEEKLY' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Es lo que recibes cada vez que te pagan, no el total del mes.
                   </p>
                 )}
               </div>
@@ -600,6 +650,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider">Moneda</span>
                 <span className="text-sm text-white font-medium">{currency}</span>
+              </div>
+              <div className="h-px bg-white/5" />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">Vista por defecto</span>
+                <span className="text-sm text-white font-medium">
+                  {financialViewDefault === 'BIWEEKLY' ? 'Quincenal' : 'Mensual'}
+                </span>
               </div>
               {createdAccountName && (
                 <>
