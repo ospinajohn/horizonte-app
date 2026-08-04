@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const Select = SelectPrimitive.Root
@@ -52,14 +52,20 @@ const SelectContent = React.forwardRef<
       )}
       {...props}
     >
+      <SelectPrimitive.ScrollUpButton className="flex items-center justify-center py-1 text-gray-500 hover:text-white cursor-default">
+        <ChevronUp size={14} />
+      </SelectPrimitive.ScrollUpButton>
       <SelectPrimitive.Viewport
         className={cn(
-          'p-1.5',
+          'p-1.5 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-y-auto custom-scrollbar',
           position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]'
         )}
       >
         {children}
       </SelectPrimitive.Viewport>
+      <SelectPrimitive.ScrollDownButton className="flex items-center justify-center py-1 text-gray-500 hover:text-white cursor-default">
+        <ChevronDown size={14} />
+      </SelectPrimitive.ScrollDownButton>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ))
