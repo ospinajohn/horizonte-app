@@ -1,10 +1,12 @@
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { getPrismaClient } from '../database/client'
 import type { AnalyticsData, ApiResult } from '../../shared/types'
 
 const db = () => getPrismaClient()
 
 function getMonthLabel(date: Date): string {
-  return date.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })
+  return format(date, 'MMM yy', { locale: es })
 }
 
 export const AnalyticsService = {
@@ -27,7 +29,7 @@ export const AnalyticsService = {
       if (period === 'monthly') {
         periodStart = new Date(year, month - 1, 1)
         periodEnd = new Date(year, month, 0, 23, 59, 59)
-        periodLabel = new Date(year, month - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+        periodLabel = format(new Date(year, month - 1, 1), 'MMMM yyyy', { locale: es })
         prevStart = new Date(year, month - 2, 1)
         prevEnd = new Date(year, month - 1, 0, 23, 59, 59)
       } else if (period === 'quarterly') {
