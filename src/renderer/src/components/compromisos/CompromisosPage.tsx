@@ -348,6 +348,7 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
           <button
             onClick={handleMarkPaid}
             disabled={paying}
+            title="Registra el pago como una transacción real, descuenta el monto de la cuenta asociada y avanza la fecha al siguiente ciclo. Si no lo marcas, seguirá apareciendo como pendiente pero no afectará tu saldo."
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] text-xs font-bold hover:bg-[#10B981]/20 transition-colors disabled:opacity-50"
           >
             <CheckCircle2 size={12} />
@@ -400,6 +401,9 @@ export function CompromisosPage(): JSX.Element {
           <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-white tracking-tight">
             Compromisos Fijos
           </h1>
+          <p className="text-sm text-gray-500 mt-2 max-w-xl">
+            Pagos fijos (arriendo, servicios, cuotas) que afectan tu balance real: al marcar uno como pagado se registra la transacción y se descuenta de tu cuenta. Si buscas un gasto recurrente que solo quieres monitorear sin que mueva tu saldo (ej. una suscripción), usa el módulo de Suscripciones.
+          </p>
         </div>
         <CompromisoFormModal onSuccess={load} />
       </div>

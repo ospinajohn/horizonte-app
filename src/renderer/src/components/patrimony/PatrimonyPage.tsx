@@ -207,6 +207,9 @@ export function PatrimonyPage(): JSX.Element {
           <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-white tracking-tight">
             Patrimonio Neto
           </h1>
+          <p className="text-sm text-gray-500 mt-2 max-w-xl">
+            Todo lo que tienes (cuentas, activos) menos todo lo que debes (créditos, tarjetas, pasivos). Se guarda una foto mensual para ver si tu patrimonio crece o baja con el tiempo.
+          </p>
         </div>
       </div>
 

@@ -530,8 +530,14 @@ function DebtTab(): JSX.Element {
 
         <div className="bg-[#121418] border border-white/5 rounded-[28px] p-8 space-y-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Ingreso mensual promedio</p>
+            <p
+              className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1"
+              title="Promedio de tus ingresos (transacciones de tipo ingreso) de los últimos 3 meses"
+            >
+              Ingreso mensual promedio
+            </p>
             <p className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[#10B981]">{formatCurrency(d.monthlyIncome)}</p>
+            <p className="text-xs text-gray-600 mt-1">Promedio de tus ingresos de los últimos 3 meses.</p>
           </div>
 
           <div className="h-px bg-white/5" />
@@ -689,9 +695,13 @@ function EmergencyTab(): JSX.Element {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Falta para la meta</p>
-              <p className={cn('text-base font-bold', d.missingAmount === 0 ? 'text-[#10B981]' : 'text-rose-400')}>
-                {d.missingAmount === 0 ? '¡Meta alcanzada!' : formatCurrency(d.missingAmount)}
-              </p>
+              {d.targetAmount === 0 ? (
+                <p className="text-base font-bold text-gray-500">Sin datos suficientes</p>
+              ) : (
+                <p className={cn('text-base font-bold', d.missingAmount === 0 ? 'text-[#10B981]' : 'text-rose-400')}>
+                  {d.missingAmount === 0 ? '¡Meta alcanzada!' : formatCurrency(d.missingAmount)}
+                </p>
+              )}
             </div>
           </div>
 

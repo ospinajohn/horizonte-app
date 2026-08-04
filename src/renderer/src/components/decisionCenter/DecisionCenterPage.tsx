@@ -123,8 +123,8 @@ export function DecisionCenterPage(): JSX.Element {
           <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold tracking-tight text-white mt-1">
             Centro de Decisiones
           </h1>
-          <p className="text-sm text-gray-500 mt-2">
-            Consulta en lenguaje natural sobre tu situación financiera
+          <p className="text-sm text-gray-500 mt-2 max-w-xl">
+            Responde con datos reales de tus cuentas, transacciones y presupuestos — no es un chat genérico. Cuantas más transacciones tengas registradas, más precisas serán las respuestas.
           </p>
         </div>
 

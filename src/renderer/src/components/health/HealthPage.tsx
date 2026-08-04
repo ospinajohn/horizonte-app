@@ -270,7 +270,11 @@ export function HealthPage(): JSX.Element {
 
         {/* Header + tab bar */}
         <div className="space-y-6">
-          <PageHeader subtitle="SALUD FINANCIERA" title="Salud Financiera" />
+          <PageHeader
+            subtitle="SALUD FINANCIERA"
+            title="Salud Financiera"
+            description="Un puntaje de 0-100 calculado con 8 factores reales (liquidez, ahorro, deuda, patrimonio, presupuesto, fondo de emergencia, tendencia y diversificación). Con poco historial de transacciones, algunos factores pueden dar bajo simplemente por falta de datos, no porque tu situación sea mala."
+          />
 
           <div className="flex bg-[#0F1115] border border-white/5 rounded-2xl p-1 w-fit">
             {pageTabs.map((t) => (
@@ -432,10 +436,10 @@ export function HealthPage(): JSX.Element {
                 <Lightbulb size={48} className="text-gray-700" />
                 <div className="text-center space-y-2">
                   <p className="text-white font-bold text-lg">Sin recomendaciones</p>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 text-sm max-w-sm">
                     {recTab === 'applied'
                       ? 'Aún no has aplicado ninguna recomendación.'
-                      : 'Genera recomendaciones basadas en tu estado financiero actual.'}
+                      : 'Genera recomendaciones basadas en tu estado financiero actual. Solo aparecen cuando se detecta algo accionable (ej. una categoría que concentra +30% del gasto, o una meta de ahorro alcanzable) — con poco historial es normal no ver ninguna todavía.'}
                   </p>
                 </div>
                 {recTab !== 'applied' && (
