@@ -5,7 +5,7 @@ import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Building2, X, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
 import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DatePicker } from '@/components/ui/input'
@@ -44,7 +44,16 @@ function StatusBadge({ status }: { status: string }): JSX.Element {
 }
 
 // ── Credit Form Modal ─────────────────────────────────────────────────────────
-function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
+function CreditFormModal({
+  onSuccess,
+  credit,
+  trigger
+}: {
+  onSuccess: () => void
+  credit?: Credit
+  trigger?: JSX.Element
+}): JSX.Element {
+  const isEdit = !!credit
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -53,13 +62,36 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
     defaultValues: { paidInstallments: 0, status: 'ACTIVE', monthlyPayment: 0 }
   })
 
+  useEffect(() => {
+    if (open && credit) {
+      reset({
+        entityName: credit.entityName,
+        totalAmount: credit.totalAmount,
+        pendingAmount: credit.pendingAmount,
+        annualRate: credit.annualRate,
+        monthlyPayment: credit.monthlyPayment,
+        paymentDay: credit.paymentDay,
+        totalInstallments: credit.totalInstallments,
+        paidInstallments: credit.paidInstallments,
+        status: credit.status,
+        startDate: format(new Date(credit.startDate), 'yyyy-MM-dd'),
+        notes: credit.notes ?? ''
+      })
+    } else if (open && !credit) {
+      reset({ paidInstallments: 0, status: 'ACTIVE', monthlyPayment: 0 })
+    }
+  }, [open, credit, reset])
+
   const onSubmit = async (data: CreditFormData): Promise<void> => {
     setSaving(true)
-    const result = await window.api.credits.create({
+    const payload = {
       ...data,
       startDate: parseLocalDate(data.startDate),
       notes: data.notes || undefined
-    })
+    }
+    const result = isEdit
+      ? await window.api.credits.update(credit!.id, payload)
+      : await window.api.credits.create(payload)
     setSaving(false)
     if (result.success) {
       reset()
@@ -74,17 +106,19 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20">
-          <Plus size={16} />
-          Nuevo Crédito
-        </button>
+        {trigger ?? (
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20">
+            <Plus size={16} />
+            Nuevo Crédito
+          </button>
+        )}
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[85vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
           <div className="flex items-center justify-between p-8 pb-0 shrink-0">
             <Dialog.Title className="text-xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
-              Nuevo Crédito
+              {isEdit ? 'Editar Crédito' : 'Nuevo Crédito'}
             </Dialog.Title>
             <Dialog.Close className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
               <X size={14} />
@@ -190,7 +224,7 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
                 disabled={saving}
                 className="flex-1 h-11 rounded-2xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#0ea371] transition-colors disabled:opacity-50"
               >
-                {saving ? 'Guardando...' : 'Guardar Crédito'}
+                {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Guardar Crédito'}
               </button>
             </div>
           </form>
@@ -322,7 +356,7 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
 }
 
 // ── Credit Card Component ─────────────────────────────────────────────────────
-function CreditCard({ credit, onDelete }: { credit: Credit; onDelete: () => void }): JSX.Element {
+function CreditCard({ credit, onDelete, onUpdated }: { credit: Credit; onDelete: () => void; onUpdated: () => void }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const progressPct = credit.totalInstallments > 0
     ? (credit.paidInstallments / credit.totalInstallments) * 100
@@ -382,15 +416,27 @@ function CreditCard({ credit, onDelete }: { credit: Credit; onDelete: () => void
 
       <div className="flex items-center justify-between">
         <AmortizationModal creditId={credit.id} entityName={credit.entityName} />
-        <button
-          onClick={async () => {
-            await window.api.credits.delete(credit.id)
-            onDelete()
-          }}
-          className="text-xs text-gray-600 hover:text-rose-400 transition-colors"
-        >
-          Eliminar
-        </button>
+        <div className="flex items-center gap-4">
+          <CreditFormModal
+            credit={credit}
+            onSuccess={onUpdated}
+            trigger={
+              <button className="text-xs text-gray-600 hover:text-[#10B981] transition-colors flex items-center gap-1">
+                <Pencil size={12} />
+                Editar
+              </button>
+            }
+          />
+          <button
+            onClick={async () => {
+              await window.api.credits.delete(credit.id)
+              onDelete()
+            }}
+            className="text-xs text-gray-600 hover:text-rose-400 transition-colors"
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
 
       {expanded && (
@@ -490,7 +536,7 @@ export function CreditsPage(): JSX.Element {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {credits.map((credit) => (
-              <CreditCard key={credit.id} credit={credit} onDelete={load} />
+              <CreditCard key={credit.id} credit={credit} onDelete={load} onUpdated={load} />
             ))}
           </div>
         )}

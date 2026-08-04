@@ -5,9 +5,21 @@ const db = () => getPrismaClient()
 
 export const CreditService = {
   /**
-   * Genera la tabla de amortización sistema francés (cuota fija)
+   * Calcula la cuota mensual teórica sistema francés (cuota fija)
    * r = (1 + annualRate/100)^(1/12) - 1
    * cuota = P * r * (1+r)^n / ((1+r)^n - 1)
+   */
+  calculateMonthlyPayment(pendingAmount: number, annualRate: number, totalInstallments: number): number {
+    const r = Math.pow(1 + annualRate / 100, 1 / 12) - 1
+    if (r === 0) return pendingAmount / totalInstallments
+    const factor = Math.pow(1 + r, totalInstallments)
+    return (pendingAmount * r * factor) / (factor - 1)
+  },
+
+  /**
+   * Genera la tabla de amortización usando la cuota real (`payment`), manual o calculada.
+   * Si la cuota no alcanza a cubrir el interés del período, el saldo deja de amortizar
+   * (se mantiene, sin bajar) en vez de crecer indefinidamente.
    */
   generateAmortization(
     pendingAmount: number,
@@ -15,17 +27,11 @@ export const CreditService = {
     totalInstallments: number,
     paidInstallments: number,
     startDate: Date,
-    paymentDay: number
+    paymentDay: number,
+    payment: number
   ): Array<Omit<AmortizationRow, 'id' | 'creditId'>> {
     const r = Math.pow(1 + annualRate / 100, 1 / 12) - 1
-    let cuota: number
-
-    if (r === 0) {
-      cuota = pendingAmount / totalInstallments
-    } else {
-      const factor = Math.pow(1 + r, totalInstallments)
-      cuota = (pendingAmount * r * factor) / (factor - 1)
-    }
+    const cuota = payment
 
     const rows: Array<Omit<AmortizationRow, 'id' | 'creditId'>> = []
     let balance = pendingAmount
@@ -84,16 +90,14 @@ export const CreditService = {
       const paidInstallments = dto.paidInstallments ?? 0
       const startDate = new Date(dto.startDate)
 
-      // Calcular cuota mensual si no se proporcionó
-      const r = Math.pow(1 + dto.annualRate / 100, 1 / 12) - 1
+      // Usar la cuota manual si el usuario la indicó; si no, calcularla
       let monthlyPayment = dto.monthlyPayment
       if (!monthlyPayment || monthlyPayment === 0) {
-        if (r === 0) {
-          monthlyPayment = dto.totalAmount / dto.totalInstallments
-        } else {
-          const factor = Math.pow(1 + r, dto.totalInstallments)
-          monthlyPayment = (dto.pendingAmount * r * factor) / (factor - 1)
-        }
+        monthlyPayment = CreditService.calculateMonthlyPayment(
+          dto.pendingAmount,
+          dto.annualRate,
+          dto.totalInstallments
+        )
       }
 
       // Crear el crédito y su amortización en una transacción
@@ -115,14 +119,15 @@ export const CreditService = {
           }
         })
 
-        // 2. Generar filas de amortización
+        // 2. Generar filas de amortización con la cuota real (manual o calculada)
         const rows = CreditService.generateAmortization(
           dto.pendingAmount,
           dto.annualRate,
           dto.totalInstallments,
           paidInstallments,
           startDate,
-          dto.paymentDay
+          dto.paymentDay,
+          Math.round(monthlyPayment * 100) / 100
         )
 
         // 3. Insertar filas
@@ -166,12 +171,67 @@ export const CreditService = {
 
   async update(id: number, dto: Partial<CreateCreditDto>): Promise<ApiResult<Credit>> {
     try {
-      const data: any = { ...dto }
-      if (dto.startDate) data.startDate = new Date(dto.startDate)
-      const credit = await db().credit.update({
-        where: { id },
-        data
+      const existing = await db().credit.findUnique({ where: { id } })
+      if (!existing) return { success: false, error: 'Crédito no encontrado' }
+
+      const startDate = dto.startDate ? new Date(dto.startDate) : existing.startDate
+      const pendingAmount = dto.pendingAmount ?? existing.pendingAmount
+      const annualRate = dto.annualRate ?? existing.annualRate
+      const totalInstallments = dto.totalInstallments ?? existing.totalInstallments
+      const paidInstallments = dto.paidInstallments ?? existing.paidInstallments
+      const paymentDay = dto.paymentDay ?? existing.paymentDay
+
+      // Usar la cuota manual si el usuario la indicó; si no, calcularla
+      let monthlyPayment = dto.monthlyPayment
+      if (!monthlyPayment || monthlyPayment === 0) {
+        monthlyPayment = CreditService.calculateMonthlyPayment(pendingAmount, annualRate, totalInstallments)
+      }
+      monthlyPayment = Math.round(monthlyPayment * 100) / 100
+
+      const credit = await db().$transaction(async (tx) => {
+        const updated = await tx.credit.update({
+          where: { id },
+          data: {
+            entityName: dto.entityName ?? existing.entityName,
+            totalAmount: dto.totalAmount ?? existing.totalAmount,
+            pendingAmount,
+            annualRate,
+            monthlyPayment,
+            paymentDay,
+            totalInstallments,
+            paidInstallments,
+            status: dto.status ?? existing.status,
+            startDate,
+            notes: dto.notes ?? existing.notes
+          }
+        })
+
+        // Regenerar tabla de amortización con los datos actualizados
+        await tx.amortizationRow.deleteMany({ where: { creditId: id } })
+        const rows = CreditService.generateAmortization(
+          pendingAmount,
+          annualRate,
+          totalInstallments,
+          paidInstallments,
+          startDate,
+          paymentDay,
+          monthlyPayment
+        )
+        await tx.amortizationRow.createMany({
+          data: rows.map((row) => ({ ...row, creditId: id }))
+        })
+
+        // Sincronizar la cuota del RecurringItem vinculado
+        if (existing.recurringItemId) {
+          await tx.recurringItem.update({
+            where: { id: existing.recurringItemId },
+            data: { amount: monthlyPayment, name: `Cuota ${updated.entityName}` }
+          })
+        }
+
+        return updated
       })
+
       return { success: true, data: credit as Credit }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -180,7 +240,15 @@ export const CreditService = {
 
   async delete(id: number): Promise<ApiResult<void>> {
     try {
-      await db().credit.update({ where: { id }, data: { isActive: false } })
+      await db().$transaction(async (tx) => {
+        const credit = await tx.credit.update({ where: { id }, data: { isActive: false } })
+        if (credit.recurringItemId) {
+          await tx.recurringItem.update({
+            where: { id: credit.recurringItemId },
+            data: { isActive: false }
+          })
+        }
+      })
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
