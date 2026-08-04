@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { disconnectDatabase } from './database/client'
 import { registerIpcHandlers } from './ipc/handlers'
 import { AlertEngineService } from './services/AlertEngineService'
+import { CategoryService } from './services/CategoryService'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -61,7 +62,7 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.horizonte.app')
 
   app.on('browser-window-created', (_, window) => {
@@ -70,6 +71,9 @@ app.whenReady().then(() => {
 
   // Registrar todos los IPC handlers de dominio
   registerIpcHandlers()
+
+  // Garantizar categorías por defecto antes de mostrar la ventana
+  await CategoryService.ensureDefaults()
 
   createWindow()
 
