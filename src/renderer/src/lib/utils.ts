@@ -30,6 +30,26 @@ export function parseLocalDate(dateStr: string): Date {
 }
 
 /**
+ * Calcula la próxima fecha de cobro a partir de un día del mes (1-31).
+ * Si el día ya pasó este mes, devuelve el mismo día del mes siguiente.
+ * Si el mes no tiene ese día (ej. día 31 en febrero), usa el último día del mes.
+ */
+export function getNextBillingDate(billingDay: number, from: Date = new Date()): Date {
+  const year = from.getFullYear()
+  const month = from.getMonth()
+  const lastDayThisMonth = new Date(year, month + 1, 0).getDate()
+  const dayThisMonth = Math.min(billingDay, lastDayThisMonth)
+  const candidate = new Date(year, month, dayThisMonth)
+
+  if (candidate >= new Date(year, month, from.getDate())) {
+    return candidate
+  }
+
+  const lastDayNextMonth = new Date(year, month + 2, 0).getDate()
+  return new Date(year, month + 1, Math.min(billingDay, lastDayNextMonth))
+}
+
+/**
  * Formatea un valor numérico como porcentaje
  */
 export function formatPercent(value: number, decimals = 1): string {

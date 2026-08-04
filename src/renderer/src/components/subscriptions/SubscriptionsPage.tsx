@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Plus, Repeat, X, Edit2, Trash2, AlertTriangle } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { formatCurrency, cn, getNextBillingDate } from '@/lib/utils'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import type { Subscription, SubscriptionCategory } from '../../../../shared/types'
 
@@ -157,8 +159,25 @@ function SubscriptionFormModal({
                 {errors.amount && <p className="text-rose-400 text-xs mt-1">{errors.amount.message}</p>}
               </div>
               <div>
-                <label className={labelCls}>Día de cobro</label>
-                <input {...register('billingDay')} type="number" min="1" max="31" placeholder="15" className={inputCls} />
+                <label className={labelCls}>Día del mes en que se cobra</label>
+                <Controller
+                  name="billingDay"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={String(field.value)} onValueChange={(v) => field.onChange(Number(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={String(day)}>
+                            Día {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -264,8 +283,10 @@ function SubCard({ sub, onRefresh }: { sub: Subscription; onRefresh: () => void 
           )}
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Cobro</p>
-          <p className="text-sm font-medium text-gray-300">Día {sub.billingDay}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Próximo cobro</p>
+          <p className="text-sm font-medium text-gray-300">
+            {format(getNextBillingDate(sub.billingDay), "d 'de' MMM", { locale: es })}
+          </p>
         </div>
       </div>
     </div>
@@ -307,6 +328,9 @@ export function SubscriptionsPage(): JSX.Element {
           <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-white tracking-tight">
             Suscripciones
           </h1>
+          <p className="text-sm text-gray-500 mt-2 max-w-xl">
+            Seguimiento informativo de tus pagos recurrentes (streaming, software, etc.) y detección de aumentos de precio — no descuenta de tu balance ni requiere marcar pagos. Si necesitas que el pago sí afecte tu saldo real, regístralo como Compromiso.
+          </p>
         </div>
         <SubscriptionFormModal onSuccess={load} />
       </div>
