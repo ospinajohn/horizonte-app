@@ -7,8 +7,10 @@ import {
   AreaChart, Area, CartesianGrid
 } from 'recharts'
 import {
-  BarChart3, Receipt, Building2, Calendar, Printer
+  BarChart3, Receipt, Building2, Calendar, Printer, FileDown, FileSpreadsheet
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import { jsPDF } from 'jspdf'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -317,9 +319,15 @@ function ComparisonTab({ data, loading }: { data: AnalyticsData | null; loading:
 }
 
 // ── Tab 4: Exportar ───────────────────────────────────────────────────────────
-async function handleExportCSV(reportType: ExportType, year: number, month: number): Promise<void> {
+const EXPORT_TITLES: Record<ExportType, string> = {
+  monthly: 'Reporte Mensual',
+  annual: 'Reporte Anual',
+  categories: 'Gastos por Categoría',
+  debts: 'Créditos y Deudas'
+}
+
+async function buildReportRows(reportType: ExportType, year: number, month: number): Promise<string[][]> {
   let rows: string[][] = []
-  const period = `${year}-${String(month).padStart(2, '0')}`
 
   if (reportType === 'monthly' || reportType === 'categories') {
     const [summaryRes, catsRes] = await Promise.all([
@@ -367,14 +375,52 @@ async function handleExportCSV(reportType: ExportType, year: number, month: numb
     ]
   }
 
-  const csvContent = rows.map((r) => r.join(',')).join('\n')
-  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `reporte-${reportType}-${period}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  return rows
+}
+
+async function handleExportXLSX(reportType: ExportType, year: number, month: number): Promise<void> {
+  const rows = await buildReportRows(reportType, year, month)
+  const period = `${year}-${String(month).padStart(2, '0')}`
+
+  const worksheet = XLSX.utils.aoa_to_sheet(rows)
+  worksheet['!cols'] = rows[0]?.map(() => ({ wch: 24 })) ?? []
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, EXPORT_TITLES[reportType].slice(0, 31))
+  XLSX.writeFile(workbook, `reporte-${reportType}-${period}.xlsx`)
+}
+
+async function handleExportPDF(reportType: ExportType, year: number, month: number): Promise<void> {
+  const rows = await buildReportRows(reportType, year, month)
+  const period = `${year}-${String(month).padStart(2, '0')}`
+
+  const doc = new jsPDF()
+  const marginX = 14
+  let y = 20
+
+  doc.setFontSize(16)
+  doc.text(`Horizonte \u2014 ${EXPORT_TITLES[reportType]}`, marginX, y)
+  y += 6
+  doc.setFontSize(10)
+  doc.setTextColor(120)
+  doc.text(`Per\u00edodo: ${period}`, marginX, y)
+  doc.setTextColor(0)
+  y += 10
+
+  doc.setFontSize(10)
+  for (const row of rows) {
+    if (row.length === 0) {
+      y += 4
+      continue
+    }
+    if (y > 280) {
+      doc.addPage()
+      y = 20
+    }
+    doc.text(row.join('   |   '), marginX, y)
+    y += 7
+  }
+
+  doc.save(`reporte-${reportType}-${period}.pdf`)
 }
 
 function ExportTab({ year, month }: { year: number; month: number }): JSX.Element {
@@ -402,10 +448,21 @@ function ExportTab({ year, month }: { year: number; month: number }): JSX.Elemen
     if (selectedExport === 'debts') loadDebts()
   }, [selectedExport, loadDebts])
 
-  const handleExport = async (type: ExportType): Promise<void> => {
-    setExporting(true)
+  const handleSelectCard = (type: ExportType): void => {
     setSelectedExport(type)
-    await handleExportCSV(type, year, month)
+  }
+
+  const handleExportXLSXClick = async (): Promise<void> => {
+    if (!selectedExport) return
+    setExporting(true)
+    await handleExportXLSX(selectedExport, year, month)
+    setExporting(false)
+  }
+
+  const handleExportPDFClick = async (): Promise<void> => {
+    if (!selectedExport) return
+    setExporting(true)
+    await handleExportPDF(selectedExport, year, month)
     setExporting(false)
   }
 
@@ -422,9 +479,11 @@ function ExportTab({ year, month }: { year: number; month: number }): JSX.Elemen
           {EXPORT_CARDS.map((card) => (
             <button
               key={card.id}
-              onClick={() => handleExport(card.id)}
+              onClick={() => handleSelectCard(card.id)}
               disabled={exporting}
-              className="bg-[#121418] border border-white/5 rounded-[24px] p-6 text-left transition-all duration-200 hover:border-white/20 hover:bg-white/[0.02] group"
+              className={`bg-[#121418] border rounded-[24px] p-6 text-left transition-all duration-200 hover:border-white/20 hover:bg-white/[0.02] group ${
+                selectedExport === card.id ? 'border-[#10B981]/50' : 'border-white/5'
+              }`}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-white/5 text-gray-500 group-hover:bg-[#10B981]/20 group-hover:text-[#10B981] transition-colors">
                 {card.icon}
@@ -436,20 +495,39 @@ function ExportTab({ year, month }: { year: number; month: number }): JSX.Elemen
         </div>
       </div>
 
-      {/* Print button */}
+      {/* Export actions */}
       <div className="flex items-center gap-4">
         <button
+          onClick={handleExportXLSXClick}
+          disabled={exporting || !selectedExport}
+          className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FileSpreadsheet size={16} />
+          Descargar Excel
+        </button>
+        <button
+          onClick={handleExportPDFClick}
+          disabled={exporting || !selectedExport}
+          className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-bold text-sm rounded-2xl hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FileDown size={16} />
+          Descargar PDF
+        </button>
+        <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20"
+          className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-medium text-sm rounded-2xl hover:bg-white/10 hover:text-white transition-colors"
         >
           <Printer size={16} />
-          Imprimir / PDF
+          Imprimir
         </button>
         {exporting && (
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <div className="w-4 h-4 border-2 border-[#10B981]/30 border-t-[#10B981] rounded-full animate-spin" />
             Exportando...
           </div>
+        )}
+        {!selectedExport && (
+          <p className="text-xs text-gray-600">Selecciona un tipo de reporte arriba para habilitar la descarga.</p>
         )}
       </div>
 
