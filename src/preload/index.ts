@@ -62,7 +62,8 @@ const recurringAPI = {
   update: (id: number, dto: any) => ipcRenderer.invoke('recurring:update', id, dto),
   delete: (id: number) => ipcRenderer.invoke('recurring:delete', id),
   getProjection: (months?: number) => ipcRenderer.invoke('recurring:getProjection', months),
-  markAsPaid: (id: number) => ipcRenderer.invoke('recurring:markAsPaid', id)
+  markAsPaid: (id: number) => ipcRenderer.invoke('recurring:markAsPaid', id),
+  getSubscriptionTotals: () => ipcRenderer.invoke('recurring:getSubscriptionTotals')
 }
 
 const alertsAPI = {
@@ -146,15 +147,6 @@ const emergencyFundAPI = {
   getData: () => ipcRenderer.invoke('emergencyFund:getData')
 }
 
-const subscriptionsAPI = {
-  getAll: () => ipcRenderer.invoke('subscriptions:getAll'),
-  create: (dto: any) => ipcRenderer.invoke('subscriptions:create', dto),
-  update: (id: number, dto: any) => ipcRenderer.invoke('subscriptions:update', id, dto),
-  delete: (id: number) => ipcRenderer.invoke('subscriptions:delete', id),
-  getTotals: () => ipcRenderer.invoke('subscriptions:getTotals'),
-  checkPriceChanges: () => ipcRenderer.invoke('subscriptions:checkPriceChanges')
-}
-
 const healthAPI = {
   getScore: () => ipcRenderer.invoke('health:getScore'),
   getHistory: () => ipcRenderer.invoke('health:getHistory'),
@@ -202,7 +194,6 @@ if (process.contextIsolated) {
       simulator: simulatorAPI,
       debtCapacity: debtCapacityAPI,
       emergencyFund: emergencyFundAPI,
-      subscriptions: subscriptionsAPI,
       health: healthAPI,
       analytics: analyticsAPI,
       recommendations: recommendationsAPI,
@@ -233,7 +224,6 @@ if (process.contextIsolated) {
     simulator: simulatorAPI,
     debtCapacity: debtCapacityAPI,
     emergencyFund: emergencyFundAPI,
-    subscriptions: subscriptionsAPI,
     health: healthAPI,
     analytics: analyticsAPI,
     recommendations: recommendationsAPI,

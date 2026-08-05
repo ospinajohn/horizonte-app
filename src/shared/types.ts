@@ -120,6 +120,8 @@ export interface Transfer {
   toAccount?: Account
 }
 
+export type SubscriptionCategory = 'ENTERTAINMENT' | 'PRODUCTIVITY' | 'CLOUD' | 'OTHER'
+
 export interface RecurringItem {
   id: number
   name: string
@@ -136,6 +138,12 @@ export interface RecurringItem {
   updatedAt: Date
   category?: Category
   account?: Account
+  // Campos de suscripción (solo aplican si isSubscription = true)
+  isSubscription: boolean
+  subscriptionCategory: SubscriptionCategory | null
+  lastBilledAmount: number | null
+  color: string | null
+  icon: string | null
 }
 
 export interface Budget {
@@ -252,6 +260,10 @@ export interface CreateRecurringItemDto {
   description?: string
   categoryId?: number
   accountId?: number
+  isSubscription?: boolean
+  subscriptionCategory?: SubscriptionCategory
+  color?: string
+  icon?: string
 }
 
 export interface CreateBudgetDto {
@@ -349,7 +361,6 @@ export interface BiweeklyData {
 
 export type CreditStatus = 'ACTIVE' | 'PAID' | 'OVERDUE'
 export type AssetType = 'REAL_ESTATE' | 'VEHICLE' | 'TECH' | 'INVESTMENT' | 'OTHER'
-export type SubscriptionCategory = 'ENTERTAINMENT' | 'PRODUCTIVITY' | 'CLOUD' | 'OTHER'
 export type SimulationScenarioType =
   | 'SALARY_CHANGE'
   | 'NEW_CREDIT'
@@ -565,34 +576,8 @@ export interface PatrimonyData {
 }
 
 // ─── Suscripciones ────────────────────────────────────────────────────────────
-
-export interface Subscription {
-  id: number
-  name: string
-  amount: number
-  billingDay: number
-  category: SubscriptionCategory
-  accountId: number | null
-  isActive: boolean
-  lastBilledAmount: number | null
-  notes: string | null
-  color: string
-  icon: string
-  createdAt: Date
-  updatedAt: Date
-  recurringItemId: number | null
-}
-
-export interface CreateSubscriptionDto {
-  name: string
-  amount: number
-  billingDay: number
-  category?: SubscriptionCategory
-  accountId?: number
-  notes?: string
-  color?: string
-  icon?: string
-}
+// Nota: las suscripciones son un RecurringItem con isSubscription = true.
+// Ver `SubscriptionCategory` y los campos de suscripción en `RecurringItem`.
 
 // ─── Simulación ───────────────────────────────────────────────────────────────
 

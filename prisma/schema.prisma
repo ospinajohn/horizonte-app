@@ -127,6 +127,13 @@ model RecurringItem {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Campos de suscripción (opcionales — solo aplican cuando isSubscription = true)
+  isSubscription       Boolean  @default(false)
+  subscriptionCategory String? // ENTERTAINMENT | PRODUCTIVITY | CLOUD | OTHER
+  lastBilledAmount     Float? // monto anterior, para detectar aumentos de precio
+  color                String? // color del preset (ej. rojo Netflix)
+  icon                 String? // icono del preset
+
   category Category? @relation(fields: [categoryId], references: [id])
   account  Account?  @relation(fields: [accountId], references: [id])
 
@@ -319,24 +326,8 @@ model Liability {
 }
 
 // ─── Suscripciones ────────────────────────────────────────────────────────────
-
-model Subscription {
-  id               Int      @id @default(autoincrement())
-  name             String
-  amount           Float                           // costo mensual
-  billingDay       Int                             // día del mes que se cobra
-  category         String   @default("ENTERTAINMENT") // ENTERTAINMENT | PRODUCTIVITY | CLOUD | OTHER
-  accountId        Int?                            // cuenta de débito
-  isActive         Boolean  @default(true)
-  lastBilledAmount Float?                          // último cobro real (para detectar aumentos)
-  notes            String?
-  color            String   @default("#6366f1")
-  icon             String   @default("repeat")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  recurringItemId  Int?                            // vinculada a RecurringItem
-}
+// Nota: las suscripciones ya no son un modelo separado — son un RecurringItem
+// (Compromiso) con isSubscription = true. Ver campos de suscripción arriba.
 
 // ─── Escenarios de Simulación ─────────────────────────────────────────────────
 

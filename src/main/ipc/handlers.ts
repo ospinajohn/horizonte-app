@@ -24,7 +24,6 @@ import { PatrimonyService } from '../services/PatrimonyService'
 import { SimulatorService } from '../services/SimulatorService'
 import { DebtCapacityService } from '../services/DebtCapacityService'
 import { EmergencyFundService } from '../services/EmergencyFundService'
-import { SubscriptionService } from '../services/SubscriptionService'
 
 export function registerIpcHandlers(): void {
   // ── AppConfig ──────────────────────────────────────────────────────────────
@@ -82,6 +81,7 @@ export function registerIpcHandlers(): void {
     RecurringService.getProjection(months)
   )
   ipcMain.handle('recurring:markAsPaid', (_e, id: number) => RecurringService.markAsPaid(id))
+  ipcMain.handle('recurring:getSubscriptionTotals', () => RecurringService.getSubscriptionTotals())
 
   // ── Alerts ─────────────────────────────────────────────────────────────────
   ipcMain.handle('alerts:getAll', (_e, onlyUnread?) => AlertService.getAll(onlyUnread))
@@ -157,14 +157,6 @@ export function registerIpcHandlers(): void {
 
   // ── Emergency Fund ─────────────────────────────────────────────────────────
   ipcMain.handle('emergencyFund:getData', () => EmergencyFundService.getData())
-
-  // ── Subscriptions ──────────────────────────────────────────────────────────
-  ipcMain.handle('subscriptions:getAll', () => SubscriptionService.getAll())
-  ipcMain.handle('subscriptions:create', (_e, dto) => SubscriptionService.create(dto))
-  ipcMain.handle('subscriptions:update', (_e, id: number, dto) => SubscriptionService.update(id, dto))
-  ipcMain.handle('subscriptions:delete', (_e, id: number) => SubscriptionService.delete(id))
-  ipcMain.handle('subscriptions:getTotals', () => SubscriptionService.getTotals())
-  ipcMain.handle('subscriptions:checkPriceChanges', () => SubscriptionService.checkPriceChanges())
 
   // ── Health Score ───────────────────────────────────────────────────────────
   ipcMain.handle('health:getScore', () => HealthScoreService.calculateScore())

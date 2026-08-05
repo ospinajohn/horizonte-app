@@ -14,7 +14,6 @@ import {
   CreditCard,
   TrendingUp,
   TestTube2,
-  Repeat,
   FileText,
   HeartPulse,
   MessageSquare,
@@ -53,11 +52,6 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <BarChart3 size={14} />,
       },
       { label: "Metas", path: "/metas", icon: <Target size={14} /> },
-      {
-        label: "Suscripciones",
-        path: "/suscripciones",
-        icon: <Repeat size={14} />,
-      },
       {
         label: "Compromisos",
         path: "/compromisos",

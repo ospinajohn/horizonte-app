@@ -5,13 +5,13 @@ import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, CalendarCheck, X, Edit2, Trash2, CheckCircle2, Clock } from 'lucide-react'
+import { Plus, CalendarCheck, X, Edit2, Trash2, CheckCircle2, Clock, Repeat, AlertTriangle } from 'lucide-react'
 import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCategories } from '@/hooks/useCategories'
-import type { RecurringItem, RecurrenceType, CreateRecurringItemDto } from '../../../../shared/types'
+import type { RecurringItem, RecurrenceType, CreateRecurringItemDto, SubscriptionCategory } from '../../../../shared/types'
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 const compromisoSchema = z.object({
@@ -22,7 +22,10 @@ const compromisoSchema = z.object({
   nextDate: z.string().min(1, 'Fecha requerida'),
   endDate: z.string().optional(),
   categoryId: z.coerce.number().optional(),
-  accountId: z.coerce.number().min(1, 'Selecciona una cuenta')
+  accountId: z.coerce.number().min(1, 'Selecciona una cuenta'),
+  isSubscription: z.boolean().default(false),
+  subscriptionCategory: z.enum(['ENTERTAINMENT', 'PRODUCTIVITY', 'CLOUD', 'OTHER']).default('ENTERTAINMENT'),
+  color: z.string().default('#6366f1')
 })
 
 type CompFormData = z.infer<typeof compromisoSchema>
@@ -49,6 +52,23 @@ const TYPE_COLORS: Record<string, string> = {
   INCOME: 'emerald'
 }
 
+const SUB_CAT_LABELS: Record<SubscriptionCategory, string> = {
+  ENTERTAINMENT: 'Entretenimiento',
+  PRODUCTIVITY: 'Productividad',
+  CLOUD: 'Nube / Almacenamiento',
+  OTHER: 'Otro'
+}
+
+const SUB_PRESETS = [
+  { name: 'Netflix', amount: 22900, color: '#E50914', category: 'ENTERTAINMENT' as SubscriptionCategory },
+  { name: 'Spotify', amount: 16900, color: '#1DB954', category: 'ENTERTAINMENT' as SubscriptionCategory },
+  { name: 'ChatGPT', amount: 83000, color: '#10A37F', category: 'PRODUCTIVITY' as SubscriptionCategory },
+  { name: 'Amazon Prime', amount: 19900, color: '#FF9900', category: 'ENTERTAINMENT' as SubscriptionCategory },
+  { name: 'Disney+', amount: 15900, color: '#113CCF', category: 'ENTERTAINMENT' as SubscriptionCategory },
+  { name: 'Microsoft 365', amount: 43900, color: '#0078D4', category: 'PRODUCTIVITY' as SubscriptionCategory },
+  { name: 'Google One', amount: 3000, color: '#4285F4', category: 'CLOUD' as SubscriptionCategory }
+]
+
 // ── Form Modal ────────────────────────────────────────────────────────────────
 function CompromisoFormModal({
   onSuccess,
@@ -63,7 +83,7 @@ function CompromisoFormModal({
   const { accounts } = useAccounts()
   const { categories } = useCategories('EXPENSE')
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<CompFormData>({
+  const { register, handleSubmit, control, reset, setValue, watch, formState: { errors } } = useForm<CompFormData>({
     resolver: zodResolver(compromisoSchema),
     defaultValues: editItem
       ? {
@@ -74,10 +94,15 @@ function CompromisoFormModal({
           nextDate: format(new Date(editItem.nextDate), 'yyyy-MM-dd'),
           endDate: editItem.endDate ? format(new Date(editItem.endDate), 'yyyy-MM-dd') : undefined,
           categoryId: editItem.categoryId ?? undefined,
-          accountId: editItem.accountId ?? (accounts[0]?.id ?? 0)
+          accountId: editItem.accountId ?? (accounts[0]?.id ?? 0),
+          isSubscription: editItem.isSubscription,
+          subscriptionCategory: (editItem.subscriptionCategory as SubscriptionCategory) ?? 'ENTERTAINMENT',
+          color: editItem.color ?? '#6366f1'
         }
-      : { type: 'EXPENSE', recurrence: 'MONTHLY', accountId: accounts[0]?.id ?? 0 }
+      : { type: 'EXPENSE', recurrence: 'MONTHLY', accountId: accounts[0]?.id ?? 0, isSubscription: false, subscriptionCategory: 'ENTERTAINMENT', color: '#6366f1' }
   })
+
+  const isSubscription = watch('isSubscription')
 
   const onSubmit = async (data: CompFormData): Promise<void> => {
     setSaving(true)
@@ -89,7 +114,11 @@ function CompromisoFormModal({
       nextDate: parseLocalDate(data.nextDate),
       endDate: data.endDate ? parseLocalDate(data.endDate) : undefined,
       categoryId: data.categoryId || undefined,
-      accountId: data.accountId
+      accountId: data.accountId,
+      isSubscription: data.isSubscription,
+      subscriptionCategory: data.isSubscription ? data.subscriptionCategory : undefined,
+      color: data.isSubscription ? data.color : undefined,
+      icon: data.isSubscription ? 'repeat' : undefined
     }
 
     if (isEdit && editItem) {
@@ -101,6 +130,13 @@ function CompromisoFormModal({
     reset()
     setOpen(false)
     onSuccess()
+  }
+
+  const applyPreset = (preset: typeof SUB_PRESETS[0]): void => {
+    setValue('name', preset.name)
+    setValue('amount', preset.amount)
+    setValue('color', preset.color)
+    setValue('subscriptionCategory', preset.category)
   }
 
   const inputCls = 'w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#10B981]/50'
@@ -133,6 +169,34 @@ function CompromisoFormModal({
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Toggle suscripción */}
+              <label className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer">
+                <input type="checkbox" {...register('isSubscription')} className="w-4 h-4 accent-[#10B981]" />
+                <div>
+                  <p className="text-sm font-medium text-white">Es una suscripción</p>
+                  <p className="text-xs text-gray-500">Activa presets rápidos (Netflix, Spotify...) y detección de aumento de precio.</p>
+                </div>
+              </label>
+
+              {isSubscription && !isEdit && (
+                <div>
+                  <p className={labelCls}>Acceso rápido</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SUB_PRESETS.map((p) => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => applyPreset(p)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium border border-white/10 hover:border-white/20 text-gray-300 hover:text-white transition-colors"
+                        style={{ borderLeftColor: p.color, borderLeftWidth: 3 }}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className={labelCls}>Nombre</label>
                 <input {...register('name')} placeholder="Arriendo, Luz, Agua..." className={inputCls} />
@@ -203,32 +267,61 @@ function CompromisoFormModal({
                       </Select>
                     )}
                   />
+                  {errors.accountId && <p className="text-rose-400 text-xs mt-1">{errors.accountId.message}</p>}
                 </div>
               </div>
 
-              <div>
-                <label className={labelCls}>Categoría</label>
-                <Controller
-                  name="categoryId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value != null ? String(field.value) : ''} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sin categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
+              {isSubscription ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Categoría de suscripción</label>
+                    <Controller
+                      name="subscriptionCategory"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(SUB_CAT_LABELS) as SubscriptionCategory[]).map((c) => (
+                              <SelectItem key={c} value={c}>{SUB_CAT_LABELS[c]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Color</label>
+                    <input {...register('color')} type="color" className="w-full h-10 bg-black/30 border border-white/10 rounded-2xl cursor-pointer" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className={labelCls}>Categoría</label>
+                  <Controller
+                    name="categoryId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value != null ? String(field.value) : ''} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sin categoría" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => (
+                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Próxima fecha</label>
+                  <label className={labelCls}>{isSubscription ? 'Próximo cobro' : 'Próxima fecha'}</label>
                   <Controller
                     name="nextDate"
                     control={control}
@@ -275,6 +368,7 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
   const colorKey = TYPE_COLORS[item.type] ?? 'rose'
   const nextDate = new Date(item.nextDate)
   const isDueSoon = (nextDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 3
+  const hasPriceChange = item.lastBilledAmount !== null && item.lastBilledAmount !== item.amount
 
   const handleMarkPaid = async (): Promise<void> => {
     setPaying(true)
@@ -284,10 +378,13 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
   }
 
   return (
-    <div className={cn(
-      'bg-[#121418] border rounded-[28px] p-6 transition-all duration-200 group relative overflow-hidden',
-      isDueSoon ? 'border-amber-500/30' : 'border-white/5 hover:border-white/10'
-    )}>
+    <div
+      className={cn(
+        'bg-[#121418] border rounded-[28px] p-6 transition-all duration-200 group relative overflow-hidden',
+        isDueSoon ? 'border-amber-500/30' : 'border-white/5 hover:border-white/10'
+      )}
+      style={item.isSubscription && item.color ? { borderLeftColor: item.color, borderLeftWidth: 4 } : undefined}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -296,15 +393,19 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
             colorKey === 'amber' && 'bg-amber-500/10',
             colorKey === 'emerald' && 'bg-emerald-500/10'
           )}>
-            <CalendarCheck size={18} className={cn(
-              colorKey === 'rose' && 'text-rose-400',
-              colorKey === 'amber' && 'text-amber-400',
-              colorKey === 'emerald' && 'text-emerald-400'
-            )} />
+            {item.isSubscription ? (
+              <Repeat size={18} style={{ color: item.color ?? undefined }} className={!item.color ? 'text-gray-400' : undefined} />
+            ) : (
+              <CalendarCheck size={18} className={cn(
+                colorKey === 'rose' && 'text-rose-400',
+                colorKey === 'amber' && 'text-amber-400',
+                colorKey === 'emerald' && 'text-emerald-400'
+              )} />
+            )}
           </div>
           <div>
             <p className="text-sm font-bold text-white">{item.name}</p>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className={cn(
                 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl border',
                 colorKey === 'rose' && 'text-rose-400 border-rose-500/20 bg-rose-500/10',
@@ -314,6 +415,16 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
                 {TYPE_LABELS[item.type] ?? item.type}
               </span>
               <span className="text-[10px] text-gray-600">{RECURRENCE_LABELS[item.recurrence as RecurrenceType] ?? item.recurrence}</span>
+              {item.isSubscription && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl border text-indigo-400 border-indigo-500/20 bg-indigo-500/10">
+                  Suscripción
+                </span>
+              )}
+              {hasPriceChange && (
+                <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-xl">
+                  <AlertTriangle size={10} /> Precio cambió
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -334,7 +445,10 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
           <p className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
             {formatCurrency(item.amount)}
           </p>
-          {item.category && (
+          {hasPriceChange && (
+            <p className="text-xs text-amber-400 mt-0.5">Antes: {formatCurrency(item.lastBilledAmount!)}</p>
+          )}
+          {!hasPriceChange && item.category && (
             <p className="text-[11px] text-gray-600 mt-0.5">{item.category.name}</p>
           )}
         </div>
@@ -361,22 +475,32 @@ function CompromisoCard({ item, onRefresh }: { item: RecurringItem; onRefresh: (
 }
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
+type FilterMode = 'ALL' | 'SUBSCRIPTIONS'
+
 export function CompromisosPage(): JSX.Element {
   const [items, setItems] = useState<RecurringItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<FilterMode>('ALL')
+  const [subTotals, setSubTotals] = useState({ monthly: 0, annual: 0, count: 0 })
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true)
-    const result = await window.api.recurring.getAll(true)
+    const [result, totalsResult] = await Promise.all([
+      window.api.recurring.getAll(true),
+      window.api.recurring.getSubscriptionTotals()
+    ])
     if (result.success && result.data) {
       setItems(result.data.filter(i => i.type !== 'INCOME'))
     }
+    if (totalsResult.success && totalsResult.data) setSubTotals(totalsResult.data)
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const totalMonthly = items.reduce((acc, item) => {
+  const visibleItems = filter === 'SUBSCRIPTIONS' ? items.filter(i => i.isSubscription) : items
+
+  const totalMonthly = visibleItems.reduce((acc, item) => {
     if (item.recurrence === 'MONTHLY') return acc + item.amount
     if (item.recurrence === 'WEEKLY') return acc + item.amount * 4.33
     if (item.recurrence === 'BIWEEKLY') return acc + item.amount * 2.17
@@ -402,47 +526,87 @@ export function CompromisosPage(): JSX.Element {
             Compromisos Fijos
           </h1>
           <p className="text-sm text-gray-500 mt-2 max-w-xl">
-            Pagos fijos (arriendo, servicios, cuotas) que afectan tu balance real: al marcar uno como pagado se registra la transacción y se descuenta de tu cuenta. Si buscas un gasto recurrente que solo quieres monitorear sin que mueva tu saldo (ej. una suscripción), usa el módulo de Suscripciones.
+            Pagos fijos (arriendo, servicios, cuotas, suscripciones) que afectan tu balance real: al marcar uno como pagado se registra la transacción y se descuenta de tu cuenta. Marca "Es una suscripción" al crearlo para presets rápidos y detección de aumento de precio.
           </p>
         </div>
         <CompromisoFormModal onSuccess={load} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-12 py-8 custom-scrollbar">
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 mb-6">
+          {([
+            { id: 'ALL' as FilterMode, label: 'Todos' },
+            { id: 'SUBSCRIPTIONS' as FilterMode, label: `Suscripciones (${subTotals.count})` }
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id)}
+              className={cn(
+                'px-4 py-2 rounded-xl text-xs font-bold transition-colors border',
+                filter === tab.id
+                  ? 'bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981]'
+                  : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Summary */}
         <div className="bg-[#121418] border border-white/5 rounded-[28px] p-8 mb-8 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-64 h-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none" />
-          <div className="relative flex gap-16 items-center">
+          <div className="relative flex gap-16 items-center flex-wrap">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Total mensual estimado</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
+                {filter === 'SUBSCRIPTIONS' ? 'Total mensual en suscripciones' : 'Total mensual estimado'}
+              </p>
               <p className="text-5xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-rose-400">
                 {formatCurrency(totalMonthly)}
               </p>
             </div>
             <div className="w-px h-16 bg-white/5" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Compromisos activos</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
+                {filter === 'SUBSCRIPTIONS' ? 'Suscripciones activas' : 'Compromisos activos'}
+              </p>
               <p className="text-3xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
-                {items.length}
+                {visibleItems.length}
               </p>
             </div>
+            {filter === 'ALL' && subTotals.count > 0 && (
+              <>
+                <div className="w-px h-16 bg-white/5" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Suscripciones/año</p>
+                  <p className="text-3xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-amber-400">
+                    {formatCurrency(subTotals.annual)}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Items grid */}
-        {items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mb-4 border border-rose-500/20">
               <CalendarCheck size={28} className="text-rose-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Sin compromisos fijos</h3>
+            <h3 className="text-xl font-bold text-white mb-2">
+              {filter === 'SUBSCRIPTIONS' ? 'Sin suscripciones registradas' : 'Sin compromisos fijos'}
+            </h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              Registra tus gastos obligatorios como arriendo, servicios públicos y demás para controlar tus gastos fijos.
+              {filter === 'SUBSCRIPTIONS'
+                ? 'Crea un compromiso y marca "Es una suscripción" para verlo aquí.'
+                : 'Registra tus gastos obligatorios como arriendo, servicios públicos y demás para controlar tus gastos fijos.'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <CompromisoCard key={item.id} item={item} onRefresh={load} />
             ))}
           </div>

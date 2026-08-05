@@ -14,7 +14,6 @@ import { CreditsPage } from './components/credits/CreditsPage'
 import { CreditCardsPage } from './components/creditCards/CreditCardsPage'
 import { PatrimonyPage } from './components/patrimony/PatrimonyPage'
 import { LaboratorioPage } from './components/laboratorio/LaboratorioPage'
-import { SubscriptionsPage } from './components/subscriptions/SubscriptionsPage'
 import { ReportsPage } from './components/reports/ReportsPage'
 import { HealthPage } from './components/health/HealthPage'
 import { DecisionCenterPage } from './components/decisionCenter/DecisionCenterPage'
@@ -69,7 +68,7 @@ function RouterContent(): JSX.Element {
           <Route path="creditos" element={<CreditsPage />} />
           <Route path="tarjetas" element={<CreditCardsPage />} />
           <Route path="patrimonio" element={<PatrimonyPage />} />
-          <Route path="suscripciones" element={<SubscriptionsPage />} />
+          <Route path="suscripciones" element={<Navigate to="/compromisos" replace />} />
           <Route path="compromisos" element={<CompromisosPage />} />
           <Route path="reportes" element={<ReportsPage />} />
           <Route path="laboratorio" element={<LaboratorioPage />} />

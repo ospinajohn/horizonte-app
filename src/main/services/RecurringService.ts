@@ -1,5 +1,6 @@
 import { getPrismaClient } from '../database/client'
 import type { RecurringItem, CreateRecurringItemDto, ApiResult } from '../../shared/types'
+import { AlertService } from './AlertService'
 
 const db = () => getPrismaClient()
 
@@ -51,12 +52,52 @@ export const RecurringService = {
 
   async update(id: number, dto: Partial<CreateRecurringItemDto>): Promise<ApiResult<RecurringItem>> {
     try {
+      const existing = await db().recurringItem.findUnique({ where: { id } })
+      if (!existing) return { success: false, error: 'Compromiso no encontrado' }
+
+      const data: Partial<CreateRecurringItemDto> & { lastBilledAmount?: number } = { ...dto }
+
+      // Si es una suscripción y el monto cambió, guardar el anterior y avisar del cambio de precio
+      if (existing.isSubscription && dto.amount !== undefined && dto.amount !== existing.amount) {
+        data.lastBilledAmount = existing.amount
+        const diff = dto.amount - existing.amount
+        const pct = existing.amount > 0 ? ((diff / existing.amount) * 100).toFixed(1) : '0'
+        await AlertService.create({
+          type: 'CUSTOM',
+          severity: 'WARNING',
+          title: `Cambio de precio: ${existing.name}`,
+          message: `El precio de ${existing.name} cambió de ${existing.amount.toLocaleString('es-CO')} a ${dto.amount.toLocaleString('es-CO')} (${diff > 0 ? '+' : ''}${pct}%).`,
+          relatedId: existing.id,
+          relatedType: 'RecurringItem'
+        })
+      }
+
       const item = await db().recurringItem.update({
         where: { id },
-        data: dto,
+        data,
         include: { category: true, account: true }
       })
       return { success: true, data: item as RecurringItem }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  /**
+   * Totales mensuales/anuales de los compromisos marcados como suscripción.
+   */
+  async getSubscriptionTotals(): Promise<ApiResult<{ monthly: number; annual: number; count: number }>> {
+    try {
+      const result = await db().recurringItem.aggregate({
+        where: { isActive: true, isSubscription: true },
+        _sum: { amount: true },
+        _count: true
+      })
+      const monthly = result._sum.amount ?? 0
+      return {
+        success: true,
+        data: { monthly: Math.round(monthly), annual: Math.round(monthly * 12), count: result._count }
+      }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
