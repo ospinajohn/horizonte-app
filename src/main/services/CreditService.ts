@@ -17,9 +17,15 @@ export const CreditService = {
   },
 
   /**
-   * Genera la tabla de amortización usando la cuota real (`payment`), manual o calculada.
-   * Si la cuota no alcanza a cubrir el interés del período, el saldo deja de amortizar
-   * (se mantiene, sin bajar) en vez de crecer indefinidamente.
+   * Genera la tabla de amortización de las cuotas RESTANTES (paidInstallments+1..totalInstallments),
+   * partiendo de `pendingAmount` como saldo actual real. No se fabrican filas para las cuotas ya
+   * pagadas: no hay forma de reconstruir con qué tasa/saldo se pagaron antes de registrar el crédito,
+   * y tratarlas como si el crédito completo (totalInstallments) recién empezara en `pendingAmount`
+   * duplicaba plazo y desalineaba el saldo mostrado con la deuda real.
+   * Si la cuota manual es mayor a la teórica, el saldo se termina de pagar antes de
+   * `totalInstallments`: la tabla se corta ahí (no se generan cuotas "fantasma" con
+   * interés $0 sobre una deuda que ya no existe) y la última fila real se ajusta para
+   * cubrir exactamente lo que falta, no la cuota fija completa si esta sobra.
    */
   generateAmortization(
     pendingAmount: number,
@@ -36,9 +42,19 @@ export const CreditService = {
     const rows: Array<Omit<AmortizationRow, 'id' | 'creditId'>> = []
     let balance = pendingAmount
 
-    for (let i = 1; i <= totalInstallments; i++) {
+    for (let i = paidInstallments + 1; i <= totalInstallments; i++) {
+      if (balance <= 0) break // ya se pagó todo — no generar cuotas fantasma
+
       const interest = balance * r
-      const principal = cuota - interest
+      let principal = cuota - interest
+      let rowPayment = cuota
+
+      if (principal >= balance) {
+        // Última cuota real: solo cobra lo que falta, no la cuota fija completa
+        principal = balance
+        rowPayment = principal + interest
+      }
+
       balance = Math.max(balance - principal, 0)
 
       // Calcular fecha de vencimiento
@@ -48,12 +64,12 @@ export const CreditService = {
 
       rows.push({
         installment: i,
-        payment: Math.round(cuota * 100) / 100,
+        payment: Math.round(rowPayment * 100) / 100,
         principal: Math.round(principal * 100) / 100,
         interest: Math.round(interest * 100) / 100,
         balance: Math.round(balance * 100) / 100,
         dueDate,
-        isPaid: i <= paidInstallments
+        isPaid: false
       })
     }
 

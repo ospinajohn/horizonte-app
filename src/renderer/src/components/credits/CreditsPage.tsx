@@ -238,13 +238,15 @@ function CreditFormModal({
 function AmortizationModal({ creditId, entityName }: { creditId: number; entityName: string }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<AmortizationRow[]>([])
+  const [credit, setCredit] = useState<Credit | null>(null)
   const [loading, setLoading] = useState(false)
 
   const loadRows = useCallback(async (): Promise<void> => {
     setLoading(true)
     const result = await window.api.credits.getById(creditId)
-    if (result.success && result.data?.amortizationRows) {
-      setRows(result.data.amortizationRows)
+    if (result.success && result.data) {
+      setCredit(result.data)
+      setRows(result.data.amortizationRows ?? [])
     }
     setLoading(false)
   }, [creditId])
@@ -253,10 +255,16 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
     if (open) loadRows()
   }, [open, loadRows])
 
-  const paidRows = rows.filter((r) => r.isPaid)
-  const totalPaid = paidRows.reduce((s, r) => s + r.payment, 0)
-  const totalInterest = paidRows.reduce((s, r) => s + r.interest, 0)
-  const totalInterestAll = rows.reduce((s, r) => s + r.interest, 0)
+  // Las cuotas ya pagadas no se guardan como filas (no hay forma de reconstruir
+  // con qué tasa/saldo se pagaron antes de registrar el crédito) — se estiman:
+  // total pagado ≈ cuotas pagadas × cuota mensual; interés pagado ≈ ese total
+  // menos el capital que realmente bajó (valor total − saldo pendiente).
+  const paidInstallments = credit?.paidInstallments ?? 0
+  const estimatedTotalPaid = paidInstallments * (credit?.monthlyPayment ?? 0)
+  const estimatedPrincipalPaid = credit ? credit.totalAmount - credit.pendingAmount : 0
+  const estimatedInterestPaid = Math.max(estimatedTotalPaid - estimatedPrincipalPaid, 0)
+  const remainingInterest = rows.reduce((s, r) => s + r.interest, 0)
+  const totalInterestAll = estimatedInterestPaid + remainingInterest
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -335,18 +343,23 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
               {/* Totales */}
               <div className="pt-4 mt-4 border-t border-white/5 grid grid-cols-3 gap-4 shrink-0">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total pagado</p>
-                  <p className="text-lg font-bold text-white">{formatCurrency(totalPaid)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total pagado (estimado)</p>
+                  <p className="text-lg font-bold text-white">{formatCurrency(estimatedTotalPaid)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés pagado</p>
-                  <p className="text-lg font-bold text-rose-400">{formatCurrency(totalInterest)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés pagado (estimado)</p>
+                  <p className="text-lg font-bold text-rose-400">{formatCurrency(estimatedInterestPaid)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés total crédito</p>
                   <p className="text-lg font-bold text-amber-400">{formatCurrency(totalInterestAll)}</p>
                 </div>
               </div>
+              {paidInstallments > 0 && (
+                <p className="text-[11px] text-gray-600 mt-3">
+                  Las primeras {paidInstallments} cuotas ya pagadas no se muestran en la tabla (no hay forma de reconstruir con qué tasa/saldo se pagaron antes de registrar el crédito). "Total pagado" e "interés pagado" son un estimado a partir de tu cuota mensual y el capital que ya bajó.
+                </p>
+              )}
             </>
           )}
         </Dialog.Content>

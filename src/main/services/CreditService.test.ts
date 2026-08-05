@@ -36,11 +36,13 @@ describe('CreditService.generateAmortization', () => {
     expect(rows.every((r) => r.interest === 0)).toBe(true)
   })
 
-  it('marca como pagadas solo las cuotas ya cubiertas', () => {
+  it('solo genera las cuotas restantes, numeradas desde paidInstallments+1, sin fabricar filas ya pagadas', () => {
     const payment = CreditService.calculateMonthlyPayment(3_000_000, 20, 10)
     const rows = CreditService.generateAmortization(3_000_000, 20, 10, 4, new Date('2026-01-01'), 15, payment)
-    expect(rows.slice(0, 4).every((r) => r.isPaid)).toBe(true)
-    expect(rows.slice(4).every((r) => !r.isPaid)).toBe(true)
+    expect(rows).toHaveLength(6)
+    expect(rows[0].installment).toBe(5)
+    expect(rows[rows.length - 1].installment).toBe(10)
+    expect(rows.every((r) => !r.isPaid)).toBe(true)
   })
 
   it('el saldo nunca es negativo', () => {
@@ -50,7 +52,21 @@ describe('CreditService.generateAmortization', () => {
   })
 
   it('respeta una cuota manual aunque no coincida con la teórica', () => {
+    // Teórica ≈ 808.329 — con 700.000 (menor) el saldo no se termina antes de las 12 cuotas
+    const rows = CreditService.generateAmortization(9_000_000, 15, 12, 0, new Date('2026-01-01'), 5, 700_000)
+    expect(rows).toHaveLength(12)
+    expect(rows.every((r) => r.payment === 700_000)).toBe(true)
+  })
+
+  it('si la cuota manual sobrepaga, corta la tabla sin generar cuotas fantasma', () => {
+    // Teórica ≈ 808.329 — con 900.000 (mayor) el saldo se paga antes de las 12 cuotas
     const rows = CreditService.generateAmortization(9_000_000, 15, 12, 0, new Date('2026-01-01'), 5, 900_000)
-    expect(rows.every((r) => r.payment === 900_000)).toBe(true)
+    expect(rows.length).toBeLessThan(12)
+    expect(rows[rows.length - 1].balance).toBe(0)
+    // Ninguna fila debe tener interés 0 con capital == cuota completa (cuota fantasma)
+    expect(rows.every((r) => r.interest > 0)).toBe(true)
+    // La última cuota real cubre exactamente lo que falta, no la cuota fija completa
+    const last = rows[rows.length - 1]
+    expect(last.payment).toBeCloseTo(last.principal + last.interest, 2)
   })
 })
