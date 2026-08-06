@@ -61,7 +61,9 @@ const recurringAPI = {
   create: (dto: any) => ipcRenderer.invoke('recurring:create', dto),
   update: (id: number, dto: any) => ipcRenderer.invoke('recurring:update', id, dto),
   delete: (id: number) => ipcRenderer.invoke('recurring:delete', id),
-  getProjection: (months?: number) => ipcRenderer.invoke('recurring:getProjection', months)
+  getProjection: (months?: number) => ipcRenderer.invoke('recurring:getProjection', months),
+  markAsPaid: (id: number) => ipcRenderer.invoke('recurring:markAsPaid', id),
+  getSubscriptionTotals: () => ipcRenderer.invoke('recurring:getSubscriptionTotals')
 }
 
 const alertsAPI = {
@@ -75,7 +77,9 @@ const alertsAPI = {
 }
 
 const dashboardAPI = {
-  getData: () => ipcRenderer.invoke('dashboard:getData')
+  getData: () => ipcRenderer.invoke('dashboard:getData'),
+  getBiweeklyData: (year: number, month: number, quincena: 'Q1' | 'Q2') =>
+    ipcRenderer.invoke('dashboard:getBiweeklyData', year, month, quincena)
 }
 
 const budgetsAPI = {
@@ -111,7 +115,12 @@ const creditCardsAPI = {
   update: (id: number, dto: any) => ipcRenderer.invoke('creditCards:update', id, dto),
   delete: (id: number) => ipcRenderer.invoke('creditCards:delete', id),
   addPurchase: (dto: any) => ipcRenderer.invoke('creditCards:addPurchase', dto),
-  getWithBalance: (id: number) => ipcRenderer.invoke('creditCards:getWithBalance', id)
+  getWithBalance: (id: number) => ipcRenderer.invoke('creditCards:getWithBalance', id),
+  getIntelligence: (id: number) => ipcRenderer.invoke('creditCards:getIntelligence', id),
+  getAllIntelligence: () => ipcRenderer.invoke('creditCards:getAllIntelligence'),
+  recommendForPurchase: (amount: number, categoryTag?: string) =>
+    ipcRenderer.invoke('creditCards:recommendForPurchase', amount, categoryTag),
+  getPurchaseAnalytics: (cardId?: number) => ipcRenderer.invoke('creditCards:getPurchaseAnalytics', cardId)
 }
 
 const patrimonyAPI = {
@@ -136,15 +145,6 @@ const debtCapacityAPI = {
 
 const emergencyFundAPI = {
   getData: () => ipcRenderer.invoke('emergencyFund:getData')
-}
-
-const subscriptionsAPI = {
-  getAll: () => ipcRenderer.invoke('subscriptions:getAll'),
-  create: (dto: any) => ipcRenderer.invoke('subscriptions:create', dto),
-  update: (id: number, dto: any) => ipcRenderer.invoke('subscriptions:update', id, dto),
-  delete: (id: number) => ipcRenderer.invoke('subscriptions:delete', id),
-  getTotals: () => ipcRenderer.invoke('subscriptions:getTotals'),
-  checkPriceChanges: () => ipcRenderer.invoke('subscriptions:checkPriceChanges')
 }
 
 const healthAPI = {
@@ -194,7 +194,6 @@ if (process.contextIsolated) {
       simulator: simulatorAPI,
       debtCapacity: debtCapacityAPI,
       emergencyFund: emergencyFundAPI,
-      subscriptions: subscriptionsAPI,
       health: healthAPI,
       analytics: analyticsAPI,
       recommendations: recommendationsAPI,
@@ -225,7 +224,6 @@ if (process.contextIsolated) {
     simulator: simulatorAPI,
     debtCapacity: debtCapacityAPI,
     emergencyFund: emergencyFundAPI,
-    subscriptions: subscriptionsAPI,
     health: healthAPI,
     analytics: analyticsAPI,
     recommendations: recommendationsAPI,

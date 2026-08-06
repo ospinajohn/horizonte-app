@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, Paperclip, Tag } from 'lucide-react'
 import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
+import { cn, parseLocalDate } from '@/lib/utils'
+import { Input, DatePicker } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCategories } from '@/hooks/useCategories'
 import type { Transaction, PaymentMethod, RecurrenceType, CreateTransactionDto, CreateRecurringItemDto } from '../../../../shared/types'
@@ -56,7 +57,6 @@ type FormValues = z.infer<typeof schema>
 export function TransactionFormModal({ open, onClose, onSuccess, mode, transaction }: TransactionFormModalProps): JSX.Element {
   const isEdit = !!transaction
   const isExpense = mode === 'expense'
-  const isIncome = mode === 'income'
 
   const { accounts } = useAccounts()
   const { categories } = useCategories(isExpense ? 'EXPENSE' : 'INCOME')
@@ -141,7 +141,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
     const dto: CreateTransactionDto = {
       type: isExpense ? 'EXPENSE' : 'INCOME',
       amount: values.amount,
-      date: new Date(values.date),
+      date: parseLocalDate(values.date),
       description: values.description || undefined,
       notes: values.notes || undefined,
       accountId: values.accountId,
@@ -151,7 +151,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
         tags: tags.length > 0 ? tags : undefined,
         receiptPath: values.receiptPath || undefined
       }),
-      isRecurring: isIncome && values.recurrence !== 'NONE'
+      isRecurring: values.recurrence !== 'NONE'
     }
 
     let result
@@ -162,14 +162,13 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
     }
 
     if (result.success && result.data) {
-      // If income with recurrence, also create recurring item
-      if (isIncome && values.recurrence !== 'NONE' && !isEdit) {
+      if (values.recurrence !== 'NONE' && !isEdit) {
         const recurringDto: CreateRecurringItemDto = {
-          name: values.description || 'Ingreso recurrente',
-          type: 'INCOME',
+          name: values.description || (isExpense ? 'Gasto recurrente' : 'Ingreso recurrente'),
+          type: isExpense ? 'EXPENSE' : 'INCOME',
           amount: values.amount,
           recurrence: values.recurrence!,
-          nextDate: new Date(values.date),
+          nextDate: parseLocalDate(values.date),
           categoryId: values.categoryId || undefined,
           accountId: values.accountId
         }
@@ -186,9 +185,9 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[#121418] border border-white/5 rounded-[28px] p-8 shadow-xl focus:outline-none max-h-[90vh] overflow-y-auto">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[90vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-xl focus:outline-none overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between p-8 pb-0 shrink-0">
             <div>
               <p className={cn(
                 "text-[10px] font-bold uppercase tracking-widest mb-1",
@@ -210,7 +209,7 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
             </Dialog.Close>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-5">
             {/* Amount */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
@@ -225,7 +224,16 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Fecha
               </label>
-              <Input {...register('date')} type="date" />
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
             </div>
 
             {/* Category */}
@@ -233,15 +241,25 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Categoría
               </label>
-              <select
-                {...register('categoryId')}
-                className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-              >
-                <option value="" className="bg-[#121418]">Sin categoría</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id} className="bg-[#121418]">{c.name}</option>
-                ))}
-              </select>
+              <Controller
+                name="categoryId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value != null ? String(field.value) : ''}
+                    onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {/* Account */}
@@ -249,15 +267,25 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Cuenta
               </label>
-              <select
-                {...register('accountId')}
-                className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-              >
-                <option value="" className="bg-[#121418]">Selecciona una cuenta</option>
-                {accounts.map(a => (
-                  <option key={a.id} value={a.id} className="bg-[#121418]">{a.name}</option>
-                ))}
-              </select>
+              <Controller
+                name="accountId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value != null ? String(field.value) : ''}
+                    onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una cuenta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map(a => (
+                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               {errors.accountId && <p className="text-xs text-rose-400 mt-1">{errors.accountId.message}</p>}
             </div>
 
@@ -290,14 +318,22 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Método de pago
                   </label>
-                  <select
-                    {...register('paymentMethod')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(m => (
-                      <option key={m} value={m} className="bg-[#121418]">{PAYMENT_METHOD_LABELS[m]}</option>
-                    ))}
-                  </select>
+                  <Controller
+                    name="paymentMethod"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(m => (
+                            <SelectItem key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 {/* Tags */}
@@ -372,20 +408,28 @@ export function TransactionFormModal({ open, onClose, onSuccess, mode, transacti
               </>
             )}
 
-            {/* INCOME-ONLY FIELDS */}
-            {isIncome && !isEdit && (
+            {/* RECURRENCE FIELD */}
+            {!isEdit && (
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Recurrencia
                 </label>
-                <select
-                  {...register('recurrence')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  {(Object.keys(RECURRENCE_LABELS) as RecurrenceType[]).map(r => (
-                    <option key={r} value={r} className="bg-[#121418]">{RECURRENCE_LABELS[r]}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="recurrence"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(RECURRENCE_LABELS) as RecurrenceType[]).map(r => (
+                          <SelectItem key={r} value={r}>{RECURRENCE_LABELS[r]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {watch('recurrence') !== 'NONE' && (
                   <p className="text-[11px] text-blue-400 mt-1.5">
                     Se creará un item recurrente automáticamente.

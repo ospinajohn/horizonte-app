@@ -1,4 +1,6 @@
 import { getPrismaClient } from '../database/client'
+import { wrapService } from '../lib/wrapService'
+import { createTransactionSchema, updateTransactionSchema, validateDto } from '../../shared/validation'
 import type {
   Transaction,
   CreateTransactionDto,
@@ -18,7 +20,7 @@ function mapTransaction(raw: any): Transaction {
 
 export const TransactionService = {
   async getAll(filters: TransactionFilters = {}): Promise<ApiResult<PaginatedResult<Transaction>>> {
-    try {
+    return wrapService(async () => {
       const {
         type,
         accountId,
@@ -65,74 +67,62 @@ export const TransactionService = {
       ])
 
       return {
-        success: true,
-        data: {
-          items: items.map(mapTransaction),
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
+        items: items.map(mapTransaction),
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
       }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+    })
   },
 
   async getById(id: number): Promise<ApiResult<Transaction>> {
-    try {
+    return wrapService(async () => {
       const tx = await db().transaction.findUnique({
         where: { id },
         include: { account: true, category: true }
       })
-      if (!tx) return { success: false, error: 'Transacción no encontrada' }
-      return { success: true, data: mapTransaction(tx) }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+      if (!tx) throw new Error('Transacción no encontrada')
+      return mapTransaction(tx)
+    })
   },
 
   async create(dto: CreateTransactionDto): Promise<ApiResult<Transaction>> {
-    try {
+    return wrapService(async () => {
+      const data = validateDto(createTransactionSchema, dto)
       const tx = await db().transaction.create({
         data: {
-          ...dto,
-          tags: dto.tags ? JSON.stringify(dto.tags) : null
+          ...data,
+          tags: data.tags ? JSON.stringify(data.tags) : null
         },
         include: { account: true, category: true }
       })
-      return { success: true, data: mapTransaction(tx) }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+      return mapTransaction(tx)
+    })
   },
 
   async update(
     id: number,
     dto: Partial<CreateTransactionDto>
   ): Promise<ApiResult<Transaction>> {
-    try {
+    return wrapService(async () => {
+      const data = validateDto(updateTransactionSchema, dto)
       const tx = await db().transaction.update({
         where: { id },
         data: {
-          ...dto,
-          tags: dto.tags ? JSON.stringify(dto.tags) : undefined
+          ...data,
+          tags: data.tags ? JSON.stringify(data.tags) : undefined
         },
         include: { account: true, category: true }
       })
-      return { success: true, data: mapTransaction(tx) }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+      return mapTransaction(tx)
+    })
   },
 
   async delete(id: number): Promise<ApiResult<void>> {
-    try {
+    return wrapService(async () => {
       await db().transaction.delete({ where: { id } })
-      return { success: true }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+    })
   },
 
   async getMonthSummary(year: number, month: number): Promise<ApiResult<{
@@ -140,7 +130,7 @@ export const TransactionService = {
     expense: number
     balance: number
   }>> {
-    try {
+    return wrapService(async () => {
       const start = new Date(year, month - 1, 1)
       const end = new Date(year, month, 0, 23, 59, 59)
 
@@ -157,17 +147,15 @@ export const TransactionService = {
 
       const income = incomeAgg._sum.amount ?? 0
       const expense = expenseAgg._sum.amount ?? 0
-      return { success: true, data: { income, expense, balance: income - expense } }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+      return { income, expense, balance: income - expense }
+    })
   },
 
   async getExpensesByCategory(
     from: Date,
     to: Date
   ): Promise<ApiResult<Array<{ categoryId: number; categoryName: string; color: string; amount: number }>>> {
-    try {
+    return wrapService(async () => {
       const grouped = await db().transaction.groupBy({
         by: ['categoryId'],
         where: { type: 'EXPENSE', date: { gte: from, lte: to }, categoryId: { not: null } },
@@ -175,7 +163,7 @@ export const TransactionService = {
         orderBy: { _sum: { amount: 'desc' } }
       })
 
-      const result = await Promise.all(
+      return Promise.all(
         grouped.map(async (g) => {
           const cat = g.categoryId
             ? await db().category.findUnique({ where: { id: g.categoryId } })
@@ -188,11 +176,7 @@ export const TransactionService = {
           }
         })
       )
-
-      return { success: true, data: result }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+    })
   },
 
   async getCashflowLast30Days(): Promise<ApiResult<Array<{
@@ -201,7 +185,7 @@ export const TransactionService = {
     expense: number
     balance: number
   }>>> {
-    try {
+    return wrapService(async () => {
       const today = new Date()
       const from = new Date(today)
       from.setDate(from.getDate() - 29)
@@ -235,14 +219,10 @@ export const TransactionService = {
       }
 
       let runningBalance = 0
-      const result = Array.from(byDay.entries()).map(([date, { income, expense }]) => {
+      return Array.from(byDay.entries()).map(([date, { income, expense }]) => {
         runningBalance += income - expense
         return { date, income, expense, balance: runningBalance }
       })
-
-      return { success: true, data: result }
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
+    })
   }
 }

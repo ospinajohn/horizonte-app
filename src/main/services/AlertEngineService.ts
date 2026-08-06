@@ -3,6 +3,8 @@ import { AlertService } from './AlertService'
 import { RecurringService } from './RecurringService'
 import { BudgetService } from './BudgetService'
 import { AccountService } from './AccountService'
+import { CreditCardService } from './CreditCardService'
+import { getCardStatus } from '../lib/billingCycleEngine'
 import { Notification } from 'electron'
 
 const db = () => getPrismaClient()
@@ -13,7 +15,8 @@ export const AlertEngineService = {
       await Promise.all([
         AlertEngineService.checkUpcomingPayments(),
         AlertEngineService.checkBudgetWarnings(),
-        AlertEngineService.checkNegativeProjection()
+        AlertEngineService.checkNegativeProjection(),
+        AlertEngineService.checkCardOpportunities()
       ])
     } catch (e) {
       console.error('[AlertEngine] Error durante la ejecución:', e)
@@ -213,6 +216,127 @@ export const AlertEngineService = {
       }
     } catch (e) {
       console.error('[AlertEngine] checkNegativeProjection error:', e)
+    }
+  },
+
+  /**
+   * Alertas del motor de inteligencia de tarjetas: corte mañana, pago próximo
+   * (3 días / 1 día), y tarjetas que acaban de entrar en su mejor momento.
+   */
+  async checkCardOpportunities(): Promise<void> {
+    try {
+      const cardsResult = await CreditCardService.getAll()
+      if (!cardsResult.success || !cardsResult.data) return
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      for (const raw of cardsResult.data) {
+        const statusResult = getCardStatus(raw.cutDay, raw.paymentDay, today)
+        const card = {
+          cardId: raw.id,
+          name: raw.name,
+          status: statusResult.status,
+          daysUntilCut: statusResult.daysUntilCut,
+          daysUntilPayment: statusResult.daysUntilPayment,
+          financingDaysIfPurchaseToday: statusResult.financingDaysIfPurchaseToday
+        }
+        const daysSincePreviousCut = Math.round(
+          (today.getTime() - statusResult.cycle.previousCutDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
+
+        // Corte mañana
+        if (card.daysUntilCut === 1) {
+          const existing = await db().alert.findFirst({
+            where: {
+              type: 'CARD_CUT_TOMORROW',
+              relatedId: card.cardId,
+              relatedType: 'CreditCard',
+              createdAt: { gte: today }
+            }
+          })
+          if (!existing) {
+            await AlertService.create({
+              type: 'CARD_CUT_TOMORROW',
+              severity: 'INFO',
+              title: `Mañana es el corte: ${card.name}`,
+              message: `Si puedes esperar un día para comprar con ${card.name}, obtendrás hasta un ciclo completo adicional para pagar.`,
+              relatedId: card.cardId,
+              relatedType: 'CreditCard'
+            })
+
+            if (Notification.isSupported()) {
+              try {
+                new Notification({
+                  title: `Mañana es el corte: ${card.name}`,
+                  body: 'Espera un día para comprar y ganarás más tiempo para pagar.'
+                }).show()
+              } catch {
+                // silenciar
+              }
+            }
+          }
+        }
+
+        // Pago próximo (3 días o 1 día)
+        if (card.daysUntilPayment === 3 || card.daysUntilPayment === 1) {
+          const existing = await db().alert.findFirst({
+            where: {
+              type: 'CARD_PAYMENT_DUE',
+              relatedId: card.cardId,
+              relatedType: 'CreditCard',
+              createdAt: { gte: today }
+            }
+          })
+          if (!existing) {
+            const daysLabel = card.daysUntilPayment === 1 ? 'mañana' : 'en 3 días'
+            await AlertService.create({
+              type: 'CARD_PAYMENT_DUE',
+              severity: card.daysUntilPayment === 1 ? 'CRITICAL' : 'WARNING',
+              title: `Pago próximo: ${card.name}`,
+              message: `El pago de tu tarjeta ${card.name} vence ${daysLabel}. Paga el total para evitar intereses.`,
+              relatedId: card.cardId,
+              relatedType: 'CreditCard'
+            })
+
+            if (Notification.isSupported()) {
+              try {
+                new Notification({
+                  title: `Pago próximo: ${card.name}`,
+                  body: `Vence ${daysLabel}.`
+                }).show()
+              } catch {
+                // silenciar
+              }
+            }
+          }
+        }
+
+        // Ciclo recién comenzado en su mejor momento (justo un día después del corte anterior)
+        const justStartedBestMoment = card.status === 'EXCELLENT' && daysSincePreviousCut === 1
+        if (justStartedBestMoment) {
+          const existing = await db().alert.findFirst({
+            where: {
+              type: 'CARD_BEST_MOMENT',
+              relatedId: card.cardId,
+              relatedType: 'CreditCard',
+              createdAt: { gte: today }
+            }
+          })
+          if (!existing) {
+            await AlertService.create({
+              type: 'CARD_BEST_MOMENT',
+              severity: 'INFO',
+              title: `Buen momento para usar ${card.name}`,
+              message: `Tu tarjeta ${card.name} está en su mejor momento del ciclo: tendrás aproximadamente ${card.financingDaysIfPurchaseToday} días para pagar sin intereses.`,
+              relatedId: card.cardId,
+              relatedType: 'CreditCard'
+            })
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[AlertEngine] checkCardOpportunities error:', e)
     }
   }
 }

@@ -5,9 +5,27 @@ const db = () => getPrismaClient()
 
 export const CreditService = {
   /**
-   * Genera la tabla de amortización sistema francés (cuota fija)
+   * Calcula la cuota mensual teórica sistema francés (cuota fija)
    * r = (1 + annualRate/100)^(1/12) - 1
    * cuota = P * r * (1+r)^n / ((1+r)^n - 1)
+   */
+  calculateMonthlyPayment(pendingAmount: number, annualRate: number, totalInstallments: number): number {
+    const r = Math.pow(1 + annualRate / 100, 1 / 12) - 1
+    if (r === 0) return pendingAmount / totalInstallments
+    const factor = Math.pow(1 + r, totalInstallments)
+    return (pendingAmount * r * factor) / (factor - 1)
+  },
+
+  /**
+   * Genera la tabla de amortización de las cuotas RESTANTES (paidInstallments+1..totalInstallments),
+   * partiendo de `pendingAmount` como saldo actual real. No se fabrican filas para las cuotas ya
+   * pagadas: no hay forma de reconstruir con qué tasa/saldo se pagaron antes de registrar el crédito,
+   * y tratarlas como si el crédito completo (totalInstallments) recién empezara en `pendingAmount`
+   * duplicaba plazo y desalineaba el saldo mostrado con la deuda real.
+   * Si la cuota manual es mayor a la teórica, el saldo se termina de pagar antes de
+   * `totalInstallments`: la tabla se corta ahí (no se generan cuotas "fantasma" con
+   * interés $0 sobre una deuda que ya no existe) y la última fila real se ajusta para
+   * cubrir exactamente lo que falta, no la cuota fija completa si esta sobra.
    */
   generateAmortization(
     pendingAmount: number,
@@ -15,24 +33,28 @@ export const CreditService = {
     totalInstallments: number,
     paidInstallments: number,
     startDate: Date,
-    paymentDay: number
+    paymentDay: number,
+    payment: number
   ): Array<Omit<AmortizationRow, 'id' | 'creditId'>> {
     const r = Math.pow(1 + annualRate / 100, 1 / 12) - 1
-    let cuota: number
-
-    if (r === 0) {
-      cuota = pendingAmount / totalInstallments
-    } else {
-      const factor = Math.pow(1 + r, totalInstallments)
-      cuota = (pendingAmount * r * factor) / (factor - 1)
-    }
+    const cuota = payment
 
     const rows: Array<Omit<AmortizationRow, 'id' | 'creditId'>> = []
     let balance = pendingAmount
 
-    for (let i = 1; i <= totalInstallments; i++) {
+    for (let i = paidInstallments + 1; i <= totalInstallments; i++) {
+      if (balance <= 0) break // ya se pagó todo — no generar cuotas fantasma
+
       const interest = balance * r
-      const principal = cuota - interest
+      let principal = cuota - interest
+      let rowPayment = cuota
+
+      if (principal >= balance) {
+        // Última cuota real: solo cobra lo que falta, no la cuota fija completa
+        principal = balance
+        rowPayment = principal + interest
+      }
+
       balance = Math.max(balance - principal, 0)
 
       // Calcular fecha de vencimiento
@@ -42,12 +64,12 @@ export const CreditService = {
 
       rows.push({
         installment: i,
-        payment: Math.round(cuota * 100) / 100,
+        payment: Math.round(rowPayment * 100) / 100,
         principal: Math.round(principal * 100) / 100,
         interest: Math.round(interest * 100) / 100,
         balance: Math.round(balance * 100) / 100,
         dueDate,
-        isPaid: i <= paidInstallments
+        isPaid: false
       })
     }
 
@@ -84,16 +106,14 @@ export const CreditService = {
       const paidInstallments = dto.paidInstallments ?? 0
       const startDate = new Date(dto.startDate)
 
-      // Calcular cuota mensual si no se proporcionó
-      const r = Math.pow(1 + dto.annualRate / 100, 1 / 12) - 1
+      // Usar la cuota manual si el usuario la indicó; si no, calcularla
       let monthlyPayment = dto.monthlyPayment
       if (!monthlyPayment || monthlyPayment === 0) {
-        if (r === 0) {
-          monthlyPayment = dto.totalAmount / dto.totalInstallments
-        } else {
-          const factor = Math.pow(1 + r, dto.totalInstallments)
-          monthlyPayment = (dto.pendingAmount * r * factor) / (factor - 1)
-        }
+        monthlyPayment = CreditService.calculateMonthlyPayment(
+          dto.pendingAmount,
+          dto.annualRate,
+          dto.totalInstallments
+        )
       }
 
       // Crear el crédito y su amortización en una transacción
@@ -115,14 +135,15 @@ export const CreditService = {
           }
         })
 
-        // 2. Generar filas de amortización
+        // 2. Generar filas de amortización con la cuota real (manual o calculada)
         const rows = CreditService.generateAmortization(
           dto.pendingAmount,
           dto.annualRate,
           dto.totalInstallments,
           paidInstallments,
           startDate,
-          dto.paymentDay
+          dto.paymentDay,
+          Math.round(monthlyPayment * 100) / 100
         )
 
         // 3. Insertar filas
@@ -166,12 +187,67 @@ export const CreditService = {
 
   async update(id: number, dto: Partial<CreateCreditDto>): Promise<ApiResult<Credit>> {
     try {
-      const data: any = { ...dto }
-      if (dto.startDate) data.startDate = new Date(dto.startDate)
-      const credit = await db().credit.update({
-        where: { id },
-        data
+      const existing = await db().credit.findUnique({ where: { id } })
+      if (!existing) return { success: false, error: 'Crédito no encontrado' }
+
+      const startDate = dto.startDate ? new Date(dto.startDate) : existing.startDate
+      const pendingAmount = dto.pendingAmount ?? existing.pendingAmount
+      const annualRate = dto.annualRate ?? existing.annualRate
+      const totalInstallments = dto.totalInstallments ?? existing.totalInstallments
+      const paidInstallments = dto.paidInstallments ?? existing.paidInstallments
+      const paymentDay = dto.paymentDay ?? existing.paymentDay
+
+      // Usar la cuota manual si el usuario la indicó; si no, calcularla
+      let monthlyPayment = dto.monthlyPayment
+      if (!monthlyPayment || monthlyPayment === 0) {
+        monthlyPayment = CreditService.calculateMonthlyPayment(pendingAmount, annualRate, totalInstallments)
+      }
+      monthlyPayment = Math.round(monthlyPayment * 100) / 100
+
+      const credit = await db().$transaction(async (tx) => {
+        const updated = await tx.credit.update({
+          where: { id },
+          data: {
+            entityName: dto.entityName ?? existing.entityName,
+            totalAmount: dto.totalAmount ?? existing.totalAmount,
+            pendingAmount,
+            annualRate,
+            monthlyPayment,
+            paymentDay,
+            totalInstallments,
+            paidInstallments,
+            status: dto.status ?? existing.status,
+            startDate,
+            notes: dto.notes ?? existing.notes
+          }
+        })
+
+        // Regenerar tabla de amortización con los datos actualizados
+        await tx.amortizationRow.deleteMany({ where: { creditId: id } })
+        const rows = CreditService.generateAmortization(
+          pendingAmount,
+          annualRate,
+          totalInstallments,
+          paidInstallments,
+          startDate,
+          paymentDay,
+          monthlyPayment
+        )
+        await tx.amortizationRow.createMany({
+          data: rows.map((row) => ({ ...row, creditId: id }))
+        })
+
+        // Sincronizar la cuota del RecurringItem vinculado
+        if (existing.recurringItemId) {
+          await tx.recurringItem.update({
+            where: { id: existing.recurringItemId },
+            data: { amount: monthlyPayment, name: `Cuota ${updated.entityName}` }
+          })
+        }
+
+        return updated
       })
+
       return { success: true, data: credit as Credit }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -180,7 +256,15 @@ export const CreditService = {
 
   async delete(id: number): Promise<ApiResult<void>> {
     try {
-      await db().credit.update({ where: { id }, data: { isActive: false } })
+      await db().$transaction(async (tx) => {
+        const credit = await tx.credit.update({ where: { id }, data: { isActive: false } })
+        if (credit.recurringItemId) {
+          await tx.recurringItem.update({
+            where: { id: credit.recurringItemId },
+            data: { isActive: false }
+          })
+        }
+      })
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }

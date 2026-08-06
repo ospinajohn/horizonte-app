@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/input'
 import {
   AreaChart,
   Area,
@@ -15,7 +17,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, Home, Car, Monitor, TrendingUp, Package, X, Building2 } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
 import type { PatrimonyData, Asset, AssetType } from '../../../../shared/types'
 
 // ── Asset icons ────────────────────────────────────────────────────────────────
@@ -50,7 +52,7 @@ type AssetFormData = z.infer<typeof assetSchema>
 function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssetFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
     defaultValues: { type: 'OTHER', acquisitionValue: 0 }
   })
@@ -59,7 +61,7 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
     setSaving(true)
     const result = await window.api.patrimony.createAsset({
       ...data,
-      acquisitionDate: data.acquisitionDate ? new Date(data.acquisitionDate) : undefined
+      acquisitionDate: data.acquisitionDate ? parseLocalDate(data.acquisitionDate) : undefined
     })
     setSaving(false)
     if (result.success) { reset(); setOpen(false); onSuccess() }
@@ -93,11 +95,22 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
               </div>
               <div>
                 <label className={labelCls}>Tipo</label>
-                <select {...register('type')} className={inputCls}>
-                  {(Object.keys(ASSET_TYPE_LABELS) as AssetType[]).map((t) => (
-                    <option key={t} value={t}>{ASSET_TYPE_LABELS[t]}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ASSET_TYPE_LABELS) as AssetType[]).map((t) => (
+                          <SelectItem key={t} value={t}>{ASSET_TYPE_LABELS[t]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -113,7 +126,16 @@ function AssetFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
             </div>
             <div>
               <label className={labelCls}>Fecha adquisición</label>
-              <input {...register('acquisitionDate')} type="date" className={inputCls} />
+              <Controller
+                name="acquisitionDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
             </div>
             <div>
               <label className={labelCls}>Descripción</label>
@@ -185,6 +207,9 @@ export function PatrimonyPage(): JSX.Element {
           <h1 className="text-4xl font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-white tracking-tight">
             Patrimonio Neto
           </h1>
+          <p className="text-sm text-gray-500 mt-2 max-w-xl">
+            Todo lo que tienes (cuentas, activos) menos todo lo que debes (créditos, tarjetas, pasivos). Se guarda una foto mensual para ver si tu patrimonio crece o baja con el tiempo.
+          </p>
         </div>
       </div>
 

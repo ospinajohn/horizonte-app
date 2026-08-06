@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState, useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -15,7 +16,8 @@ const step1Schema = z.object({
 const step2Schema = z.object({
   currency: z.enum(['COP', 'USD', 'EUR', 'MXN']),
   payDay: z.coerce.number().min(1).max(31),
-  secondPayDay: z.coerce.number().min(1).max(31).optional().or(z.literal(''))
+  secondPayDay: z.coerce.number().min(1).max(31).optional().or(z.literal('')),
+  financialViewDefault: z.enum(['MONTHLY', 'BIWEEKLY'])
 })
 
 const step3Schema = z.object({
@@ -73,6 +75,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   const [createdAccountId, setCreatedAccountId] = useState<number | null>(null)
   const [createdAccountName, setCreatedAccountName] = useState<string | null>(null)
   const [createdIncome, setCreatedIncome] = useState<number | null>(null)
+  const [financialViewDefault, setFinancialViewDefault] = useState<'MONTHLY' | 'BIWEEKLY'>('MONTHLY')
 
   const goToStep = (n: number): void => {
     setFadeOut(true)
@@ -100,16 +103,31 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   // ── Step 2 ─────────────────────────────────────────────────────────────────
   const step2Form = useForm<Step2>({
     resolver: zodResolver(step2Schema),
-    defaultValues: { currency: 'COP', payDay: 15, secondPayDay: '' }
+    defaultValues: { currency: 'COP', payDay: 15, secondPayDay: '', financialViewDefault: 'MONTHLY' }
   })
+
+  const watchedSecondPayDay = step2Form.watch('secondPayDay')
+  const financialViewTouched = step2Form.formState.dirtyFields.financialViewDefault
+
+  useEffect(() => {
+    if (financialViewTouched) return
+    step2Form.setValue(
+      'financialViewDefault',
+      watchedSecondPayDay ? 'BIWEEKLY' : 'MONTHLY'
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedSecondPayDay])
 
   const onStep2 = step2Form.handleSubmit(async (values) => {
     await window.api.config.update({
       currency: values.currency,
       payDay: values.payDay,
-      secondPayDay: values.secondPayDay ? Number(values.secondPayDay) : null
+      secondPayDay: values.secondPayDay ? Number(values.secondPayDay) : null,
+      financialViewDefault: values.financialViewDefault
     })
     setCurrency(values.currency)
+    setFinancialViewDefault(values.financialViewDefault)
+    step4Form.setValue('recurrence', values.financialViewDefault)
     next()
   })
 
@@ -146,6 +164,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
     resolver: zodResolver(step4Schema),
     defaultValues: { amount: 0, incomeType: 'Salario', recurrence: 'MONTHLY' }
   })
+
+  const watchedRecurrence = step4Form.watch('recurrence')
 
   const onStep4 = step4Form.handleSubmit(async (values) => {
     const today = new Date()
@@ -240,7 +260,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 </label>
                 <Input
                   {...step1Form.register('userName')}
-                  placeholder="Ej. Carlos"
+                  placeholder="Ej. John James"
                   autoFocus
                 />
                 {step1Form.formState.errors.userName && (
@@ -276,15 +296,23 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                   Moneda
                 </label>
-                <select
-                  {...step2Form.register('currency')}
-                  className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                >
-                  <option value="COP" className="bg-[#121418]">🇨🇴 Peso Colombiano (COP)</option>
-                  <option value="USD" className="bg-[#121418]">🇺🇸 Dólar (USD)</option>
-                  <option value="EUR" className="bg-[#121418]">🇪🇺 Euro (EUR)</option>
-                  <option value="MXN" className="bg-[#121418]">🇲🇽 Peso Mexicano (MXN)</option>
-                </select>
+                <Controller
+                  name="currency"
+                  control={step2Form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="COP">🇨🇴 Peso Colombiano (COP)</SelectItem>
+                        <SelectItem value="USD">🇺🇸 Dólar (USD)</SelectItem>
+                        <SelectItem value="EUR">🇪🇺 Euro (EUR)</SelectItem>
+                        <SelectItem value="MXN">🇲🇽 Peso Mexicano (MXN)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -315,6 +343,30 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                     placeholder="30"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
+                  ¿Cómo prefieres ver tus finanzas?
+                </label>
+                <Controller
+                  name="financialViewDefault"
+                  control={step2Form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MONTHLY">Mensual</SelectItem>
+                        <SelectItem value="BIWEEKLY">Quincenal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Define qué vista abre primero en el Dashboard. Siempre puedes cambiar entre ambas.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -369,18 +421,26 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Tipo
                   </label>
-                  <select
-                    {...step3Form.register('accountType')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="BANCO" className="bg-[#121418]">Banco</option>
-                    <option value="EFECTIVO" className="bg-[#121418]">Efectivo</option>
-                    <option value="NEQUI" className="bg-[#121418]">Nequi</option>
-                    <option value="DAVIPLATA" className="bg-[#121418]">Daviplata</option>
-                    <option value="TARJETA" className="bg-[#121418]">Tarjeta</option>
-                    <option value="AHORROS" className="bg-[#121418]">Ahorros</option>
-                    <option value="INVERSION" className="bg-[#121418]">Inversión</option>
-                  </select>
+                  <Controller
+                    name="accountType"
+                    control={step3Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BANCO">Banco</SelectItem>
+                          <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                          <SelectItem value="NEQUI">Nequi</SelectItem>
+                          <SelectItem value="DAVIPLATA">Daviplata</SelectItem>
+                          <SelectItem value="TARJETA">Tarjeta</SelectItem>
+                          <SelectItem value="AHORROS">Ahorros</SelectItem>
+                          <SelectItem value="INVERSION">Inversión</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
@@ -434,12 +494,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
             <h2 className="text-2xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white mb-1">
               Ingreso principal
             </h2>
-            <p className="text-sm text-gray-400 mb-8">¿Cuánto ganas al mes?</p>
+            <p className="text-sm text-gray-400 mb-8">
+              {watchedRecurrence === 'BIWEEKLY' ? '¿Cuánto recibes cada quincena?' : '¿Cuánto ganas al mes?'}
+            </p>
 
             <form onSubmit={onStep4} className="space-y-5">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
-                  Monto mensual
+                  {watchedRecurrence === 'BIWEEKLY' ? 'Monto por quincena' : 'Monto mensual'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
@@ -457,6 +519,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                     {step4Form.formState.errors.amount.message}
                   </p>
                 )}
+                {watchedRecurrence === 'BIWEEKLY' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Es lo que recibes cada vez que te pagan, no el total del mes.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -464,26 +531,42 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Tipo
                   </label>
-                  <select
-                    {...step4Form.register('incomeType')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="Salario" className="bg-[#121418]">Salario</option>
-                    <option value="Freelance" className="bg-[#121418]">Freelance</option>
-                    <option value="Otro" className="bg-[#121418]">Otro</option>
-                  </select>
+                  <Controller
+                    name="incomeType"
+                    control={step4Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Salario">Salario</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                          <SelectItem value="Otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                     Recurrencia
                   </label>
-                  <select
-                    {...step4Form.register('recurrence')}
-                    className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 px-4 text-sm text-white focus:outline-none focus:border-[#10B981]/50"
-                  >
-                    <option value="MONTHLY" className="bg-[#121418]">Mensual</option>
-                    <option value="BIWEEKLY" className="bg-[#121418]">Quincenal</option>
-                  </select>
+                  <Controller
+                    name="recurrence"
+                    control={step4Form.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MONTHLY">Mensual</SelectItem>
+                          <SelectItem value="BIWEEKLY">Quincenal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -567,6 +650,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider">Moneda</span>
                 <span className="text-sm text-white font-medium">{currency}</span>
+              </div>
+              <div className="h-px bg-white/5" />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">Vista por defecto</span>
+                <span className="text-sm text-white font-medium">
+                  {financialViewDefault === 'BIWEEKLY' ? 'Quincenal' : 'Mensual'}
+                </span>
               </div>
               {createdAccountName && (
                 <>

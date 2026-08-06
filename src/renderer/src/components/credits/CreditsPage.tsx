@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
+import { Plus, Building2, X, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/input'
 import type { Credit, AmortizationRow } from '../../../../shared/types'
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
@@ -42,22 +44,54 @@ function StatusBadge({ status }: { status: string }): JSX.Element {
 }
 
 // ── Credit Form Modal ─────────────────────────────────────────────────────────
-function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element {
+function CreditFormModal({
+  onSuccess,
+  credit,
+  trigger
+}: {
+  onSuccess: () => void
+  credit?: Credit
+  trigger?: JSX.Element
+}): JSX.Element {
+  const isEdit = !!credit
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreditFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<CreditFormData>({
     resolver: zodResolver(creditSchema),
     defaultValues: { paidInstallments: 0, status: 'ACTIVE', monthlyPayment: 0 }
   })
 
+  useEffect(() => {
+    if (open && credit) {
+      reset({
+        entityName: credit.entityName,
+        totalAmount: credit.totalAmount,
+        pendingAmount: credit.pendingAmount,
+        annualRate: credit.annualRate,
+        monthlyPayment: credit.monthlyPayment,
+        paymentDay: credit.paymentDay,
+        totalInstallments: credit.totalInstallments,
+        paidInstallments: credit.paidInstallments,
+        status: credit.status,
+        startDate: format(new Date(credit.startDate), 'yyyy-MM-dd'),
+        notes: credit.notes ?? ''
+      })
+    } else if (open && !credit) {
+      reset({ paidInstallments: 0, status: 'ACTIVE', monthlyPayment: 0 })
+    }
+  }, [open, credit, reset])
+
   const onSubmit = async (data: CreditFormData): Promise<void> => {
     setSaving(true)
-    const result = await window.api.credits.create({
+    const payload = {
       ...data,
-      startDate: new Date(data.startDate),
+      startDate: parseLocalDate(data.startDate),
       notes: data.notes || undefined
-    })
+    }
+    const result = isEdit
+      ? await window.api.credits.update(credit!.id, payload)
+      : await window.api.credits.create(payload)
     setSaving(false)
     if (result.success) {
       reset()
@@ -72,24 +106,26 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20">
-          <Plus size={16} />
-          Nuevo Crédito
-        </button>
+        {trigger ?? (
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-black font-bold text-sm rounded-2xl hover:bg-[#0ea371] transition-colors shadow-lg shadow-[#10B981]/20">
+            <Plus size={16} />
+            Nuevo Crédito
+          </button>
+        )}
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[#121418] border border-white/5 rounded-[28px] p-8 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
-          <div className="flex items-center justify-between mb-6">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[85vh] bg-[#121418] border border-white/5 rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-8 pb-0 shrink-0">
             <Dialog.Title className="text-xl font-['Plus_Jakarta_Sans',sans-serif] font-bold text-white">
-              Nuevo Crédito
+              {isEdit ? 'Editar Crédito' : 'Nuevo Crédito'}
             </Dialog.Title>
             <Dialog.Close className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
               <X size={14} />
             </Dialog.Close>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6 space-y-4">
             <div>
               <label className={labelCls}>Entidad / Banco</label>
               <input {...register('entityName')} placeholder="Bancolombia, Davivienda..." className={inputCls} />
@@ -141,16 +177,36 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Fecha inicio</label>
-                <input {...register('startDate')} type="date" className={inputCls} />
+                <Controller
+                  name="startDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                      onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                    />
+                  )}
+                />
                 {errors.startDate && <p className="text-rose-400 text-xs mt-1">{errors.startDate.message}</p>}
               </div>
               <div>
                 <label className={labelCls}>Estado</label>
-                <select {...register('status')} className={inputCls}>
-                  <option value="ACTIVE">Activo</option>
-                  <option value="PAID">Pagado</option>
-                  <option value="OVERDUE">En mora</option>
-                </select>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Activo</SelectItem>
+                        <SelectItem value="PAID">Pagado</SelectItem>
+                        <SelectItem value="OVERDUE">En mora</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -168,7 +224,7 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
                 disabled={saving}
                 className="flex-1 h-11 rounded-2xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#0ea371] transition-colors disabled:opacity-50"
               >
-                {saving ? 'Guardando...' : 'Guardar Crédito'}
+                {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Guardar Crédito'}
               </button>
             </div>
           </form>
@@ -182,13 +238,15 @@ function CreditFormModal({ onSuccess }: { onSuccess: () => void }): JSX.Element 
 function AmortizationModal({ creditId, entityName }: { creditId: number; entityName: string }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<AmortizationRow[]>([])
+  const [credit, setCredit] = useState<Credit | null>(null)
   const [loading, setLoading] = useState(false)
 
   const loadRows = useCallback(async (): Promise<void> => {
     setLoading(true)
     const result = await window.api.credits.getById(creditId)
-    if (result.success && result.data?.amortizationRows) {
-      setRows(result.data.amortizationRows)
+    if (result.success && result.data) {
+      setCredit(result.data)
+      setRows(result.data.amortizationRows ?? [])
     }
     setLoading(false)
   }, [creditId])
@@ -197,10 +255,16 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
     if (open) loadRows()
   }, [open, loadRows])
 
-  const paidRows = rows.filter((r) => r.isPaid)
-  const totalPaid = paidRows.reduce((s, r) => s + r.payment, 0)
-  const totalInterest = paidRows.reduce((s, r) => s + r.interest, 0)
-  const totalInterestAll = rows.reduce((s, r) => s + r.interest, 0)
+  // Las cuotas ya pagadas no se guardan como filas (no hay forma de reconstruir
+  // con qué tasa/saldo se pagaron antes de registrar el crédito) — se estiman:
+  // total pagado ≈ cuotas pagadas × cuota mensual; interés pagado ≈ ese total
+  // menos el capital que realmente bajó (valor total − saldo pendiente).
+  const paidInstallments = credit?.paidInstallments ?? 0
+  const estimatedTotalPaid = paidInstallments * (credit?.monthlyPayment ?? 0)
+  const estimatedPrincipalPaid = credit ? credit.totalAmount - credit.pendingAmount : 0
+  const estimatedInterestPaid = Math.max(estimatedTotalPaid - estimatedPrincipalPaid, 0)
+  const remainingInterest = rows.reduce((s, r) => s + r.interest, 0)
+  const totalInterestAll = estimatedInterestPaid + remainingInterest
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -279,18 +343,23 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
               {/* Totales */}
               <div className="pt-4 mt-4 border-t border-white/5 grid grid-cols-3 gap-4 shrink-0">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total pagado</p>
-                  <p className="text-lg font-bold text-white">{formatCurrency(totalPaid)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total pagado (estimado)</p>
+                  <p className="text-lg font-bold text-white">{formatCurrency(estimatedTotalPaid)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés pagado</p>
-                  <p className="text-lg font-bold text-rose-400">{formatCurrency(totalInterest)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés pagado (estimado)</p>
+                  <p className="text-lg font-bold text-rose-400">{formatCurrency(estimatedInterestPaid)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Interés total crédito</p>
                   <p className="text-lg font-bold text-amber-400">{formatCurrency(totalInterestAll)}</p>
                 </div>
               </div>
+              {paidInstallments > 0 && (
+                <p className="text-[11px] text-gray-600 mt-3">
+                  Las primeras {paidInstallments} cuotas ya pagadas no se muestran en la tabla (no hay forma de reconstruir con qué tasa/saldo se pagaron antes de registrar el crédito). "Total pagado" e "interés pagado" son un estimado a partir de tu cuota mensual y el capital que ya bajó.
+                </p>
+              )}
             </>
           )}
         </Dialog.Content>
@@ -300,7 +369,7 @@ function AmortizationModal({ creditId, entityName }: { creditId: number; entityN
 }
 
 // ── Credit Card Component ─────────────────────────────────────────────────────
-function CreditCard({ credit, onDelete }: { credit: Credit; onDelete: () => void }): JSX.Element {
+function CreditCard({ credit, onDelete, onUpdated }: { credit: Credit; onDelete: () => void; onUpdated: () => void }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const progressPct = credit.totalInstallments > 0
     ? (credit.paidInstallments / credit.totalInstallments) * 100
@@ -360,15 +429,27 @@ function CreditCard({ credit, onDelete }: { credit: Credit; onDelete: () => void
 
       <div className="flex items-center justify-between">
         <AmortizationModal creditId={credit.id} entityName={credit.entityName} />
-        <button
-          onClick={async () => {
-            await window.api.credits.delete(credit.id)
-            onDelete()
-          }}
-          className="text-xs text-gray-600 hover:text-rose-400 transition-colors"
-        >
-          Eliminar
-        </button>
+        <div className="flex items-center gap-4">
+          <CreditFormModal
+            credit={credit}
+            onSuccess={onUpdated}
+            trigger={
+              <button className="text-xs text-gray-600 hover:text-[#10B981] transition-colors flex items-center gap-1">
+                <Pencil size={12} />
+                Editar
+              </button>
+            }
+          />
+          <button
+            onClick={async () => {
+              await window.api.credits.delete(credit.id)
+              onDelete()
+            }}
+            className="text-xs text-gray-600 hover:text-rose-400 transition-colors"
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
 
       {expanded && (
@@ -468,7 +549,7 @@ export function CreditsPage(): JSX.Element {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {credits.map((credit) => (
-              <CreditCard key={credit.id} credit={credit} onDelete={load} />
+              <CreditCard key={credit.id} credit={credit} onDelete={load} onUpdated={load} />
             ))}
           </div>
         )}

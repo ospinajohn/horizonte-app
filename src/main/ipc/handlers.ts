@@ -24,7 +24,6 @@ import { PatrimonyService } from '../services/PatrimonyService'
 import { SimulatorService } from '../services/SimulatorService'
 import { DebtCapacityService } from '../services/DebtCapacityService'
 import { EmergencyFundService } from '../services/EmergencyFundService'
-import { SubscriptionService } from '../services/SubscriptionService'
 
 export function registerIpcHandlers(): void {
   // ── AppConfig ──────────────────────────────────────────────────────────────
@@ -81,6 +80,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('recurring:getProjection', (_e, months?) =>
     RecurringService.getProjection(months)
   )
+  ipcMain.handle('recurring:markAsPaid', (_e, id: number) => RecurringService.markAsPaid(id))
+  ipcMain.handle('recurring:getSubscriptionTotals', () => RecurringService.getSubscriptionTotals())
 
   // ── Alerts ─────────────────────────────────────────────────────────────────
   ipcMain.handle('alerts:getAll', (_e, onlyUnread?) => AlertService.getAll(onlyUnread))
@@ -93,6 +94,9 @@ export function registerIpcHandlers(): void {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
   ipcMain.handle('dashboard:getData', () => DashboardService.getData())
+  ipcMain.handle('dashboard:getBiweeklyData', (_e, year: number, month: number, quincena: 'Q1' | 'Q2') =>
+    DashboardService.getBiweeklyData(year, month, quincena)
+  )
 
   // ── Budgets ────────────────────────────────────────────────────────────────
   ipcMain.handle('budgets:getAll', () => BudgetService.getAll())
@@ -125,6 +129,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('creditCards:delete', (_e, id: number) => CreditCardService.delete(id))
   ipcMain.handle('creditCards:addPurchase', (_e, dto) => CreditCardService.addPurchase(dto))
   ipcMain.handle('creditCards:getWithBalance', (_e, id: number) => CreditCardService.getWithBalance(id))
+  ipcMain.handle('creditCards:getIntelligence', (_e, id: number) => CreditCardService.getIntelligence(id))
+  ipcMain.handle('creditCards:getAllIntelligence', () => CreditCardService.getAllIntelligence())
+  ipcMain.handle('creditCards:recommendForPurchase', (_e, amount: number, categoryTag?: string) =>
+    CreditCardService.recommendForPurchase(amount, categoryTag)
+  )
+  ipcMain.handle('creditCards:getPurchaseAnalytics', (_e, cardId?: number) =>
+    CreditCardService.getPurchaseAnalytics(cardId)
+  )
 
   // ── Patrimony ──────────────────────────────────────────────────────────────
   ipcMain.handle('patrimony:getData', () => PatrimonyService.getData())
@@ -145,14 +157,6 @@ export function registerIpcHandlers(): void {
 
   // ── Emergency Fund ─────────────────────────────────────────────────────────
   ipcMain.handle('emergencyFund:getData', () => EmergencyFundService.getData())
-
-  // ── Subscriptions ──────────────────────────────────────────────────────────
-  ipcMain.handle('subscriptions:getAll', () => SubscriptionService.getAll())
-  ipcMain.handle('subscriptions:create', (_e, dto) => SubscriptionService.create(dto))
-  ipcMain.handle('subscriptions:update', (_e, id: number, dto) => SubscriptionService.update(id, dto))
-  ipcMain.handle('subscriptions:delete', (_e, id: number) => SubscriptionService.delete(id))
-  ipcMain.handle('subscriptions:getTotals', () => SubscriptionService.getTotals())
-  ipcMain.handle('subscriptions:checkPriceChanges', () => SubscriptionService.checkPriceChanges())
 
   // ── Health Score ───────────────────────────────────────────────────────────
   ipcMain.handle('health:getScore', () => HealthScoreService.calculateScore())

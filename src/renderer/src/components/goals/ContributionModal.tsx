@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
-import { Input } from '@/components/ui/input'
+import { Input, DatePicker } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, parseLocalDate } from '@/lib/utils'
 import type { SavingsGoal } from '../../../../shared/types'
 
 const contributionSchema = z.object({
@@ -28,7 +28,7 @@ interface ContributionModalProps {
 export function ContributionModal({ open, onClose, onSuccess, goal }: ContributionModalProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } =
     useForm<ContributionFormValues>({
       resolver: zodResolver(contributionSchema),
       defaultValues: {
@@ -59,7 +59,7 @@ export function ContributionModal({ open, onClose, onSuccess, goal }: Contributi
       const result = await window.api.goals.addContribution({
         goalId: goal.id,
         amount: values.amount,
-        date: new Date(values.date),
+        date: parseLocalDate(values.date),
         notes: values.notes || undefined
       })
 
@@ -151,7 +151,16 @@ export function ContributionModal({ open, onClose, onSuccess, goal }: Contributi
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
                 Fecha
               </label>
-              <Input type="date" {...register('date')} />
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value ? new Date(field.value + 'T00:00:00') : null}
+                    onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                  />
+                )}
+              />
               {errors.date && (
                 <p className="text-xs text-rose-400 mt-1">{errors.date.message}</p>
               )}

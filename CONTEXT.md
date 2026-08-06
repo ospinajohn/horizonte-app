@@ -234,12 +234,14 @@ horizonte-app/
 | `Category` | Categorías de ingresos y gastos (20 predefinidas via seed) |
 | `Transaction` | Movimientos (INCOME, EXPENSE, TRANSFER_IN, TRANSFER_OUT) |
 | `Transfer` | Transferencias entre cuentas (crea 2 Transaction atómicamente) |
-| `RecurringItem` | Pagos e ingresos recurrentes (salario, arriendo, servicios, etc.) |
+| `RecurringItem` | Pagos e ingresos recurrentes (salario, arriendo, servicios, etc.). También cubre suscripciones vía `isSubscription = true` (ver nota abajo) |
 | `Budget` | Presupuestos por período (mensual, quincenal, semanal) |
 | `BudgetCategory` | Límite y gasto por categoría dentro de un presupuesto |
 | `SavingsGoal` | Metas de ahorro con progreso y fecha límite |
 | `SavingsContribution` | Aportes individuales a una meta |
 | `Alert` | Alertas del sistema (pagos próximos, presupuesto excedido, etc.) |
+
+> **Nota — fusión Compromisos/Suscripciones (migración `20260804202231_merge_subscriptions_into_recurring`):** el modelo `Subscription` se eliminó. Una suscripción es ahora un `RecurringItem` con `isSubscription = true`, más los campos `subscriptionCategory`, `lastBilledAmount`, `color`, `icon`. Antes eran dos módulos separados y sin relación real entre sí (una Suscripción no afectaba el balance ni requería marcar pago); ahora toda suscripción es un compromiso real que sí descuenta saldo al marcarse pagada. La detección de cambio de precio (comparar `amount` vs `lastBilledAmount` y generar una alerta) vive en `RecurringService.update()` — antes existía en `SubscriptionService.checkPriceChanges()` pero nunca se invocaba desde ningún lado de la UI, así que estaba muerta.
 
 ### Comandos útiles
 
@@ -270,7 +272,7 @@ window.api.accounts   // getAll, getById, create, update, delete, getTotalBalanc
 window.api.categories // getAll, getById, create, update
 window.api.transactions // getAll, getById, create, update, delete, getMonthSummary, getExpensesByCategory, getCashflowLast30Days
 window.api.transfers  // getAll, create, delete
-window.api.recurring  // getAll, getUpcoming, create, update, delete, getProjection
+window.api.recurring  // getAll, getUpcoming, create, update, delete, getProjection, markAsPaid, getSubscriptionTotals
 window.api.alerts     // getAll, getUnreadCount, create, markAsRead, markAllAsRead, dismiss
 window.api.dashboard  // getData
 window.api.budgets    // getAll, getActive, getActiveWithSpending, getWithSpending, create, delete
@@ -281,7 +283,6 @@ window.api.patrimony    // getData, takeSnapshot, createAsset, updateAsset, dele
 window.api.simulator    // simulate, saveScenario, getSavedScenarios
 window.api.debtCapacity // getData
 window.api.emergencyFund // getData
-window.api.subscriptions // getAll, create, update, delete, getTotals, checkPriceChanges
 window.api.health        // getScore, getHistory, saveSnapshot
 window.api.analytics     // getData(year, month, period)
 window.api.recommendations // generate, getAll, markRead, markApplied
@@ -308,13 +309,17 @@ window.api.decisionCenter  // answer, saveQuery, getHistory
 | `/simulador` | `SimulatorPage` | ✅ Implementado — 5 escenarios, proyecciones 3/6/12 meses, guardar escenarios |
 | `/endeudamiento` | `DebtCapacityPage` | ✅ Implementado — gauge SVG, calculadora interactiva, semáforo |
 | `/fondo-emergencia` | `EmergencyFundPage` | ✅ Implementado — progress ring, meses cubiertos, recomendación mensual |
-| `/suscripciones` | `SubscriptionsPage` | ✅ Implementado — CRUD suscripciones, presets, detección cambio precio |
-| `/reportes` | `ReportsPage` | ✅ Implementado — 4 reportes, exportación CSV, impresión/PDF |
+| `/suscripciones` | *(eliminada)* | Redirige a `/compromisos` — las suscripciones se fusionaron dentro de Compromisos (ver nota abajo) |
+| `/reportes` | `ReportsPage` | ✅ Implementado — 4 reportes, exportación a Excel real (.xlsx) y PDF real (jsPDF), imprimir por separado |
 | `/configuracion` | `SettingsPage` | ✅ Implementado — perfil, moneda, días de pago, exportar CSV, reset onboarding |
 | `/analitica` | `AnalyticsPage` | ✅ Implementado — donut, bar, area charts, insights automáticos |
 | `/salud` | `HealthPage` | ✅ Implementado — gauge SVG animado, 8 factores, historial |
 | `/recomendaciones` | `RecommendationsPage` | ✅ Implementado — 4 tipos, tabs, marcar aplicada |
 | `/decisiones` | `DecisionCenterPage` | ✅ Implementado — 6 tipos de pregunta, historial colapsable |
+| `/laboratorio` | `LaboratorioPage` | ✅ Implementado — simulador de escenarios, capacidad de deuda, fondo de emergencia |
+| `/compromisos` | `CompromisosPage` | ✅ Implementado — gestión de gastos/pagos fijos recurrentes, incluye suscripciones (`isSubscription`), presets, detección de cambio de precio, filtro Todos/Suscripciones |
+
+> Nota: el componente de navegación principal es `TopIslandNav` (`src/renderer/src/components/layout/`), no `Sidebar` — este último nombre quedó obsoleto en este documento.
 
 ---
 
@@ -350,7 +355,7 @@ window.api.decisionCenter  // answer, saveQuery, getHistory
 | Task 19 | Simulador Financiero | ✅ Completo — SimulatorService (cálculo en memoria), SimulatorPage, 5 escenarios, guardar escenario |
 | Task 20 | Capacidad de Endeudamiento | ✅ Completo — DebtCapacityService, DebtCapacityPage, gauge SVG semáforo, calculadora interactiva |
 | Task 21 | Fondo de Emergencia | ✅ Completo — EmergencyFundService, EmergencyFundPage, progress ring SVG animado |
-| Task 22 | Módulo de Suscripciones | ✅ Completo — SubscriptionService, SubscriptionsPage, SubscriptionFormModal, presets, detección de cambios de precio |
+| Task 22 | Módulo de Suscripciones | ✅ Completo (histórico) — luego fusionado dentro de Compromisos, ver nota en sección de Modelos Prisma |
 | Task 23 | Reportes y Exportación | ✅ Completo — ReportsPage, 4 tipos de reporte, exportación CSV con Blob, impresión/PDF con window.print() |
 ### Fase 3 — Tasks 24-29 ✅ COMPLETA
 
@@ -536,6 +541,7 @@ export const XService = {
 | Sesión 4 | BudgetService, SavingsGoalService, IPC handlers actualizados, BudgetsPage |
 | Sesión 6 | Tasks 16-23: CreditService, CreditCardService, PatrimonyService, SimulatorService, DebtCapacityService, EmergencyFundService, SubscriptionService + todas las páginas UI (CreditsPage, CreditCardsPage, PatrimonyPage, SimulatorPage, DebtCapacityPage, EmergencyFundPage, SubscriptionsPage, ReportsPage) + App.tsx rutas + Sidebar Fase 2 + build ✅ |
 | Sesión 7 | Tasks 25-29: HealthScoreService (8 factores), AnalyticsService, RecommendationsService, DecisionCenterService + IPC handlers + preload + HealthPage, AnalyticsPage, RecommendationsPage, DecisionCenterPage, SettingsPage + App.tsx rutas Fase 3 + Sidebar Fase 3 + build ✅ |
+| Sesión 8 (2026-08-04) | Corrección de bugs reportados (ver `temp/errores.md`): fix bug fecha en Reportes, edición de créditos + cuota manual respetada, RecurringItem huérfano al eliminar crédito, categorías por defecto auto-creadas al arrancar (`CategoryService.ensureDefaults`), scroll en todos los `Select`, exportación real a Excel/PDF en Reportes. Fusión de Suscripciones dentro de Compromisos (`isSubscription` en `RecurringItem`, migración `20260804202231_merge_subscriptions_into_recurring`, `SubscriptionsPage`/`SubscriptionService` eliminados) |
 
 ---
 
@@ -552,3 +558,13 @@ El proyecto Horizonte v1.0 está completo con todas las fases implementadas. Con
   - Exportación avanzada a Excel con SheetJS
   - Soporte multi-idioma (i18n)
   - Modo claro (light theme)
+
+### Features post-Fase 3 ya implementadas
+
+- **Vista Quincenal del Dashboard** — ✅ completa (`BiweeklyView.tsx`, `financialViewDefault`). Ver `doc/fases/FASE-vista-quincenal.md`. Roadmap de enriquecimiento (top categoría, tendencia, gráfico histórico Q1/Q2) pendiente en `doc/fases/FASE-vista-quincenal-enriquecida.md`.
+- **Optimización inteligente de tarjetas de crédito** — ✅ completa (motor de ciclos de facturación, comparador, asistente de compras). Ver `doc/nuevas-implementaciones/beneficios-tarjetas.md` (spec), `-fase1-progreso.md` (decisiones tomadas) y `-ROADMAP.md` (estado por fase).
+- **Módulos Laboratorio y Compromisos** — no forman parte de las fases 1-3 originales pero están completos e integrados (rutas, nav, IPC).
+
+### Deuda técnica conocida
+
+- **Patrón de hooks inconsistente**: solo `accounts`, `transactions`, `budgets`, `goals`, `transfers`, `dashboard` y `categories` tienen hook dedicado en `src/renderer/src/hooks/`. El resto de módulos (alerts, compromisos, creditCards, credits, decisionCenter, health, laboratorio, patrimony, planner, reports, settings, subscriptions) llaman `window.api.X` directamente en el componente de página, en vez de vía hook. Al tocar uno de estos módulos por otra razón, considerar extraer su hook para alinear con el patrón estándar documentado arriba.
