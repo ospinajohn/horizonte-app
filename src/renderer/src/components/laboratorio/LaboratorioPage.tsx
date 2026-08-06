@@ -767,7 +767,7 @@ export function LaboratorioPage(): JSX.Element {
   const [tab, setTab] = useState<TabName>('simulador')
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#08090B]">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="px-12 py-8 shrink-0 border-b border-white/5 bg-[#08090B]/80 backdrop-blur-md sticky top-0 z-10">
         <PageHeader subtitle="LABORATORIO // ANÁLISIS" title="Laboratorio Financiero" />
         <div className="mt-6">
