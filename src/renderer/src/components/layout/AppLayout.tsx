@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { TitleBar } from './TitleBar'
 import { TopIslandNav } from './TopIslandNav'
+import { UpdateNotification } from './UpdateNotification'
 
 export function AppLayout(): JSX.Element {
   const [unreadAlerts, setUnreadAlerts] = useState(0)
@@ -47,6 +48,8 @@ export function AppLayout(): JSX.Element {
           <Outlet />
         </main>
       </div>
+
+      <UpdateNotification />
     </div>
   )
 }

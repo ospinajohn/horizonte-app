@@ -12,6 +12,25 @@ const windowAPI = {
   }
 }
 
+// ── Auto-actualización ─────────────────────────────────────────────────────────
+const updaterAPI = {
+  checkNow: () => ipcRenderer.invoke('updater:checkNow'),
+  download: () => ipcRenderer.invoke('updater:download'),
+  install: () => ipcRenderer.invoke('updater:install'),
+  onAvailable: (callback: (info: { version: string; releaseNotes: string | null }) => void) => {
+    ipcRenderer.on('updater:available', (_event, value) => callback(value))
+  },
+  onProgress: (callback: (progress: { percent: number }) => void) => {
+    ipcRenderer.on('updater:progress', (_event, value) => callback(value))
+  },
+  onDownloaded: (callback: (info: { version: string }) => void) => {
+    ipcRenderer.on('updater:downloaded', (_event, value) => callback(value))
+  },
+  onError: (callback: (error: { message: string }) => void) => {
+    ipcRenderer.on('updater:error', (_event, value) => callback(value))
+  }
+}
+
 // ── Domain API ─────────────────────────────────────────────────────────────────
 const configAPI = {
   get: () => ipcRenderer.invoke('config:get'),
@@ -178,6 +197,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', {
       window: windowAPI,
+      updater: updaterAPI,
       config: configAPI,
       accounts: accountsAPI,
       categories: categoriesAPI,
@@ -208,6 +228,7 @@ if (process.contextIsolated) {
   // @ts-ignore
   window.api = {
     window: windowAPI,
+    updater: updaterAPI,
     config: configAPI,
     accounts: accountsAPI,
     categories: categoriesAPI,

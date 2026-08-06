@@ -5,6 +5,11 @@ copyright: Copyright © 2025 Horizonte
 directories:
   buildResources: build
 
+publish:
+  provider: github
+  owner: ospinajohn
+  repo: horizonte-app
+
 files:
   - '!**/.vscode/*'
   - '!src/*'

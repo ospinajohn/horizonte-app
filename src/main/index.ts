@@ -5,8 +5,9 @@ import { disconnectDatabase } from './database/client'
 import { registerIpcHandlers } from './ipc/handlers'
 import { AlertEngineService } from './services/AlertEngineService'
 import { CategoryService } from './services/CategoryService'
+import { UpdateService } from './services/UpdateService'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -60,6 +61,8 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return mainWindow
 }
 
 app.whenReady().then(async () => {
@@ -75,11 +78,16 @@ app.whenReady().then(async () => {
   // Garantizar categorías por defecto antes de mostrar la ventana
   await CategoryService.ensureDefaults()
 
-  createWindow()
+  const mainWindow = createWindow()
 
   // Ejecutar motor de alertas al arrancar y cada hora
   AlertEngineService.run()
   setInterval(() => AlertEngineService.run(), 60 * 60 * 1000)
+
+  // Auto-actualización: revisa al arrancar y cada 4 horas
+  UpdateService.init(mainWindow)
+  UpdateService.check()
+  setInterval(() => UpdateService.check(), 4 * 60 * 60 * 1000)
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
